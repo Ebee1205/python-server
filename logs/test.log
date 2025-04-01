@@ -1,0 +1,5 @@
+04/23 16:47:39.686 INFO -- FILE LOG TEST START --
+04/23 16:47:39.687 INFO     -test info level
+04/23 16:47:39.687 WARNING  -test warn level
+04/23 16:47:39.687 ERROR    -test error level
+04/23 16:47:39.687 INFO -- FILE LOG TEST END --

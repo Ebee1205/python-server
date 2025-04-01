@@ -7,12 +7,12 @@ from typing import Optional
 
 import py_logger
 
-class LoggingConfig(BaseModel):
+class LoggerConfig(BaseModel):
     level: str
     path: str
     suffix: str
     max_bytes: int
-    max_files: int
+    max_files: str
     rotation: str
     use_console: bool
 
@@ -53,7 +53,7 @@ class AppConfig(BaseModel):
     access_token_expire_minutes: int
 
     # 구성 요소들
-    logging: LoggingConfig
+    logger: LoggerConfig
     mysql: MySQLConfig
     redis: RedisConfig
     rmq: RMQConfig
@@ -75,14 +75,14 @@ class AppContext:
             raw = json.load(f)
 
         print("end load config")
-        return AppConfig(**raw)
+        self.cfg = AppConfig(**raw)
     
     def _init_logger(self):
         print("start init logger")
 
-        log_level = self.cfg.logging.Level
-        log_path = self.cfg.logging.path
-        log_max_files = self.cfg.logging.max_files
+        log_level = self.cfg.logger.level 
+        log_path = self.cfg.logger.path
+        log_max_files = self.cfg.logger.max_files
         self.log = py_logger.setup_logger(log_level, log_path, log_max_files)
 
         self.log.debug("end init logger")
@@ -92,3 +92,5 @@ class AppContext:
     # def _init_redis(self):
 
     # def _init_rmq(self):
+
+
