@@ -6,6 +6,7 @@ from typing import Any
 from typing import Optional
 
 import py_logger
+from src.handler.websocket_handler import WebSocketHandler
 
 class LoggerConfig(BaseModel):
     level: str
@@ -63,6 +64,8 @@ class AppContext:
         self.cfg = None
 
         self.log = None
+        
+        self.ws_handler = None
         self.db_handler = None
         self.redis_handler = None
         self.rmq_handler = None
@@ -86,6 +89,14 @@ class AppContext:
         self.log = py_logger.setup_logger(log_level, log_path, log_max_files)
 
         self.log.debug("end init logger")
+
+
+    def _init_websocket(self):
+        self.log.debug("start init websocket")
+
+        self.ws_handler = WebSocketHandler(self)
+
+
 
     # def _init_mysql(self):
 

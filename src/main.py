@@ -1,17 +1,9 @@
 # main.py
 
-import app_context
+from fastapi import FastAPI, WebSocket
+from src.app_context import AppContext
 
-# from fastapi import FastAPI, WebSocket
-# from handler.websocket_handler import WebSocketHandler
 
-# app = FastAPI()
-# ws_handler = WebSocketHandler()
-
-# @app.websocket("/ws/text")
-# async def websocket_endpoint(websocket: WebSocket):
-#     await ws_handler.connect(websocket)
-#     await ws_handler.receive_and_respond(websocket)
 
 def test_logging(logger):
     logger.info("-- FILE LOG TEST START --")
@@ -21,8 +13,19 @@ def test_logging(logger):
     logger.error("   -test error level")
     logger.info("-- FILE LOG TEST END --")
 
-ctx = app_context.AppContext()
+ctx = AppContext()
 ctx.load_config("src/service/conf/py-server-local.cfg.json")
 ctx._init_logger()
-
 test_logging(ctx.log)
+
+
+ctx._init_websocket()
+
+app = FastAPI()
+
+@app.websocket("/ws/text")
+async def websocket_endpoint(websocket: WebSocket):
+    await ctx.ws_handler.connect(websocket)
+    await ctx.ws_handler.receive_and_respond(websocket)
+
+# 실행코드: uvicorn src.main:app --reload --port 8000

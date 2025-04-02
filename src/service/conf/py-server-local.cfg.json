@@ -8,7 +8,7 @@
     "access_token_expire_minutes": 1440,
 
     "logger": {
-        "level": "info",
+        "level": "debug",
         "path": "./logs/test.log-%DATE%",
         "suffix": "%Y-%m-%d",
         "max_bytes": 10485760,
