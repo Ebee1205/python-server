@@ -3,7 +3,7 @@
 from fastapi import FastAPI, WebSocket
 from src.app_context import AppContext
 from src.routes.websocket_basic import router as basic_ws_router
-
+from src.routes.basic_api import router as basic_router
 
 app = FastAPI()
 app.state.ctx = AppContext()
@@ -11,6 +11,9 @@ app.state.ctx = AppContext()
 # TODO websocket_router.py 등으로 분리
 app.include_router(basic_ws_router)
 
+# http://localhost:8000/docs
+# GET /api/basic/ping
+app.include_router(basic_router)
 
 @app.on_event("startup")
 async def on_startup():
