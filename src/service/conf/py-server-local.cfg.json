@@ -7,6 +7,13 @@
     "secret_key": "changethis-secret-key",
     "access_token_expire_minutes": 1440,
 
+    "http_config": {
+      "allow_origins": ["http://localhost:5173"],
+      "allow_methods": ["*"],
+      "allow_headers": ["*"],
+      "allow_credentials": true
+    },
+    
     "logger": {
         "level": "debug",
         "path": "./logs/test.log-%DATE%",

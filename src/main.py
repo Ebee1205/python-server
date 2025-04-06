@@ -18,6 +18,7 @@ app.include_router(basic_router)
 @app.on_event("startup")
 async def on_startup():
     try:
+        # 눈에 보여서 이렇게 작성하긴 했는데 보고 config() 혹은 init()으로 묶어서 작성하는것도 고려해보기
         ctx = app.state.ctx
         ctx.load_config("src/service/conf/py-server-local.cfg.json")
 
@@ -25,6 +26,8 @@ async def on_startup():
         ctx._init_logger()
         test_logging(ctx.log)
 
+        # cors 적용
+        ctx.setup_cors(app)   
         # websocket 초기화
         ctx._init_websocket()
 
@@ -42,6 +45,7 @@ async def on_shutdown():
     if ctx.log:
         ctx.log.info("Cleaning up resources...")
 
+    # TODO app_context.py에 _destroy() 메서드로 추가
     # if ctx.db_handler:
     #     try:
     #         ctx.db_handler.close()
