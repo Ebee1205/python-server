@@ -1,12 +1,26 @@
 # main.py
 
 from fastapi import FastAPI, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
 from src.app_context import AppContext
 from src.routes.websocket_basic import router as basic_ws_router
 from src.routes.basic_api import router as basic_router
 
+
 app = FastAPI()
-app.state.ctx = AppContext()
+ctx = AppContext()
+app.state.ctx = ctx
+# ✨ CORS는 앱 생성 직후에만 등록 가능!
+ctx.load_config("src/service/conf/py-server-local.cfg.json")  # 최소한 http_config가 있어야 함
+cors = ctx.cfg.http_config
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors.allow_origins,
+    allow_credentials=cors.allow_credentials,
+    allow_methods=cors.allow_methods,
+    allow_headers=cors.allow_headers,
+)
 
 # TODO websocket_router.py 등으로 분리
 app.include_router(basic_ws_router)
@@ -15,19 +29,21 @@ app.include_router(basic_ws_router)
 # GET /api/basic/ping
 app.include_router(basic_router)
 
+# 👉 이제야 on_startup 가능
 @app.on_event("startup")
 async def on_startup():
     try:
         # 눈에 보여서 이렇게 작성하긴 했는데 보고 config() 혹은 init()으로 묶어서 작성하는것도 고려해보기
         ctx = app.state.ctx
-        ctx.load_config("src/service/conf/py-server-local.cfg.json")
 
         # logger 초기화
         ctx._init_logger()
         test_logging(ctx.log)
 
+        # TODO 구조상 안된다고 하더이다... 확인필요
         # cors 적용
-        ctx.setup_cors(app)   
+        # ctx.setup_cors(app)   
+
         # websocket 초기화
         ctx._init_websocket()
 
