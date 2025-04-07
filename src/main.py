@@ -10,10 +10,12 @@ from src.routes.basic_api import router as basic_router
 app = FastAPI()
 ctx = AppContext()
 app.state.ctx = ctx
-# ✨ CORS는 앱 생성 직후에만 등록 가능!
-ctx.load_config("src/service/conf/py-server-local.cfg.json")  # 최소한 http_config가 있어야 함
-cors = ctx.cfg.http_config
 
+# CORS는 앱 생성 직후에만 등록 가능. 순서를 지킬 것
+ctx.load_config("src/service/conf/py-server-local.cfg.json")
+
+# TODO CORS 설정 위치 여기가 최선인가,,,
+cors = ctx.cfg.http_config
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors.allow_origins,
@@ -21,12 +23,10 @@ app.add_middleware(
     allow_methods=cors.allow_methods,
     allow_headers=cors.allow_headers,
 )
+print(f"CORS 설정 완료: {cors.allow_origins}")
 
 # TODO websocket_router.py 등으로 분리
 app.include_router(basic_ws_router)
-
-# http://localhost:8000/docs
-# GET /api/basic/ping
 app.include_router(basic_router)
 
 # 👉 이제야 on_startup 가능
@@ -39,11 +39,7 @@ async def on_startup():
         # logger 초기화
         ctx._init_logger()
         test_logging(ctx.log)
-
-        # TODO 구조상 안된다고 하더이다... 확인필요
-        # cors 적용
-        # ctx.setup_cors(app)   
-
+        
         # websocket 초기화
         ctx._init_websocket()
 
@@ -61,7 +57,14 @@ async def on_shutdown():
     if ctx.log:
         ctx.log.info("Cleaning up resources...")
 
-    # TODO app_context.py에 _destroy() 메서드로 추가
+    # TODO app_context.py에 _destroy() 메서드로 추가 고려해보기
+    if ctx.ws_handler:
+        try:
+            ctx.ws_handler.disconnect()
+            ctx.log.info("DB handler closed")
+        except Exception as e:
+            ctx.log.warning(f"DB close failed: {e}")
+
     # if ctx.db_handler:
     #     try:
     #         ctx.db_handler.close()

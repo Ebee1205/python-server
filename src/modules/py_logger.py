@@ -7,7 +7,6 @@ from datetime import datetime
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
-# SUFFIX = "%Y%M%S"
 SUFFIX = "%Y%m%d"
 
 # TODO file size에 따라 rotate 되도록 수정
@@ -89,7 +88,7 @@ def setup_logger(log_level, log_path, log_max_files):
 
     # 시간 단위 로테이션 설정
     fileHandler = TimeSizeRotatingFileHandler(log_filename, when="midnight", interval=1, backupCount=backup_count, encoding="utf-8")
-    fileHandler.extMatch = re.compile(r"algo-incl-server\.log-\d{8}$")
+    fileHandler.extMatch = re.compile(r"test\.log-\d{8}$")
     fileHandler.suffix = SUFFIX
 
     fileHandler.setFormatter(formatter)

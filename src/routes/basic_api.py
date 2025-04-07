@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Request
 from src.service.scripts import basic_service
 
+# http://localhost:8000/docs
+# GET /api/basic/ping
 router = APIRouter(prefix="/api/basic", tags=["Basic"])
 
 @router.get("/ping")

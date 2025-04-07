@@ -106,32 +106,12 @@ class AppContext:
 
         self.ws_handler = WebSocketHandler(self)
 
+        self.log.debug("end init websocket")
+
     # def _init_mysql(self):
 
     # def _init_redis(self):
 
     # def _init_rmq(self):
-
-    def setup_cors(self, app):
-        """
-        🚧 TEMP: AppContext 내부에서 FastAPI(app)에 CORS 직접 등록
-
-        TODO: 리팩토링 필요. app-level 상태 설정은 middleware 모듈로 이동 권장.
-        현재 구조에서는 app_context가 FastAPI 객체에 직접 접근하고 있어     
-        책임 분리가 어긋나므로 구조적으로 분리 필요함.
-        """
-
-        http_cfg = self.cfg.http_config
-
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=http_cfg.allow_origins,
-            allow_credentials=http_cfg.allow_credentials,
-            allow_methods=http_cfg.allow_methods,
-            allow_headers=http_cfg.allow_headers,
-        )
-
-        if self.log:
-            self.log.info(f"CORS 설정 완료: {http_cfg.allow_origins}")
 
     # _destroy() 메서드 추가
