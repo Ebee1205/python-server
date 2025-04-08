@@ -7,7 +7,8 @@ from fastapi import APIRouter, WebSocket, Request
 router = APIRouter()
 
 @router.websocket("/ws")
-async def websocket_basic(websocket: WebSocket, request: Request):
-    ctx = request.app.state.ctx
-    await ctx.ws_handler.connect(websocket)
+async def websocket_basic(websocket: WebSocket):
+    ctx = websocket.app.state.ctx  # 이 줄은 유지
+    await ctx.ws_handler.connect(websocket)  # 이 안에서 accept 수행
     await ctx.ws_handler.receive_and_respond(websocket, mode="basic")
+
