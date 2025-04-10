@@ -3,20 +3,19 @@
 import redis
 from redis.exceptions import RedisError, ConnectionError
 
+
 class RedisHandler:
     def __init__(self, ctx):
         self.log = ctx.log
         self.cfg = ctx.cfg.redis
         self.client = None
 
-    # 원래 목적은 _connect와 분리해서 init() 메서드를 가지고 있으려 했는데 외부 생성 client 주입으로 기능이 약간 바뀜
-    def init(self, client: redis.Redis):
-        """외부에서 생성한 Redis client를 주입받는 경우"""
-        self.client = client
-        self.log.debug("Redis client injected externally.")
-
     def connect(self):
         try:
+            if self.client and self.client.ping():
+                self.log.info("Redis already connected")
+                return
+
             self.log.debug("Connecting to Redis...")
             self.client = redis.Redis(
                 host=self.cfg.host,
@@ -38,7 +37,15 @@ class RedisHandler:
     def disconnect(self):
         if self.client:
             try:
-                self.client.close()
-                self.log.info("Redis connection closed")
+                if self.client.ping():
+                    self.client.close()
+                    self.log.info("Redis connection closed")
+                else:
+                    self.log.warning("Redis connection already closed or lost")
             except Exception as e:
                 self.log.warning(f"Redis disconnect failed: {str(e)}")
+
+    def get_client(self):
+        if not self.client:
+            raise RuntimeError("Redis client is not connected")
+        return self.client
