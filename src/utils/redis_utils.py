@@ -129,3 +129,66 @@ def redis_hget(ctx, key, field):
     except RedisError as e:
         ctx.log.error(f"redis_hget error - key: {key}, field: {field}, error: {str(e)}")
         return None
+
+
+# Redis Stream에 메시지 추가
+def redis_stream_add(ctx, stream_key, message: dict):
+    try:
+        client = ctx.redis_handler.client
+        message_id = client.xadd(stream_key, message)
+        ctx.log.debug(f"XADD stream: {stream_key}, id: {message_id}, message: {message}")
+        return message_id
+    except RedisError as e:
+        ctx.log.error(f"redis_stream_add error - stream: {stream_key}, error: {str(e)}")
+        return None
+
+
+# Redis Stream에서 메시지 읽기
+def redis_stream_read(ctx, stream_key, last_id="$", block_ms=0):
+    try:
+        client = ctx.redis_handler.client
+        response = client.xread({stream_key: last_id}, block=block_ms)
+        ctx.log.debug(f"XREAD stream: {stream_key}, last_id: {last_id} → response: {response}")
+        return response
+    except RedisError as e:
+        ctx.log.error(f"redis_stream_read error - stream: {stream_key}, error: {str(e)}")
+        return []
+
+
+# Consumer Group에서 메시지 읽기
+def redis_stream_group_read(ctx, group, consumer, stream_key, count=1):
+    try:
+        client = ctx.redis_handler.client
+        response = client.xreadgroup(group, consumer, {stream_key: ">"}, count=count)
+        ctx.log.debug(f"XREADGROUP group: {group}, consumer: {consumer}, stream: {stream_key} → {response}")
+        return response
+    except RedisError as e:
+        ctx.log.error(f"redis_stream_group_read error - group: {group}, error: {str(e)}")
+        return []
+
+
+# 메시지 ACK
+def redis_stream_ack(ctx, stream_key, group, message_id):
+    try:
+        client = ctx.redis_handler.client
+        result = client.xack(stream_key, group, message_id)
+        ctx.log.debug(f"XACK stream: {stream_key}, group: {group}, id: {message_id} → {result}")
+        return result
+    except RedisError as e:
+        ctx.log.error(f"redis_stream_ack error - stream: {stream_key}, id: {message_id}, error: {str(e)}")
+        return False
+
+
+# Consumer Group 생성
+def redis_stream_create_group(ctx, stream_key, group_name):
+    try:
+        client = ctx.redis_handler.client
+        client.xgroup_create(stream_key, group_name, id="0", mkstream=True)
+        ctx.log.debug(f"XGROUP CREATE stream: {stream_key}, group: {group_name}")
+        return True
+    except RedisError as e:
+        if "BUSYGROUP" in str(e):
+            ctx.log.debug(f"Group already exists: {group_name} on stream: {stream_key}")
+            return True
+        ctx.log.error(f"redis_stream_create_group error - stream: {stream_key}, error: {str(e)}")
+        return False
