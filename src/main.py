@@ -42,6 +42,7 @@ async def on_startup():
         
         # websocket 초기화
         ctx._init_websocket()
+        ctx._init_redis()
 
         ctx.log.info("App initialization complete")
 
@@ -65,6 +66,13 @@ async def on_shutdown():
         except Exception as e:
             ctx.log.warning(f"DB close failed: {e}")
 
+    if ctx.redis_handler:
+        try:
+            ctx.redis_handler.close()
+            ctx.log.info("Redis handler closed")
+        except Exception as e:
+            ctx.log.warning(f"Redis close failed: {e}")
+            
     # if ctx.db_handler:
     #     try:
     #         ctx.db_handler.close()
@@ -72,12 +80,6 @@ async def on_shutdown():
     #     except Exception as e:
     #         ctx.log.warning(f"DB close failed: {e}")
 
-    # if ctx.redis_handler:
-    #     try:
-    #         ctx.redis_handler.close()
-    #         ctx.log.info("Redis handler closed")
-    #     except Exception as e:
-    #         ctx.log.warning(f"Redis close failed: {e}")
 
     # if ctx.rmq_handler:
     #     try:

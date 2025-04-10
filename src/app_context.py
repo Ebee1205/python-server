@@ -7,6 +7,7 @@ from typing import Optional
 
 import py_logger
 from src.handler.websocket_handler import WebSocketHandler
+from src.handler.redis_handler import RedisHandler
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -108,10 +109,15 @@ class AppContext:
 
         self.log.debug("end init websocket")
 
+    def _init_redis(self):
+        self.log.debug("start init Redis")
+
+        self.redis_handler = RedisHandler(self)
+
+        self.log.debug("end init Redis")
+
+
     # def _init_mysql(self):
-
-    # def _init_redis(self):
-
     # def _init_rmq(self):
 
     # _destroy() 메서드 추가
