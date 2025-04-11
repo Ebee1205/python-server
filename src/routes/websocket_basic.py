@@ -2,16 +2,29 @@
 # 웹소켓 핸들러를 사용하여 클라이언트와 서버 간의 메시지를 주고받는 예제임.
 # routes/websocket_basic.py
 
-from fastapi import APIRouter, WebSocket, Request
-
+from fastapi import APIRouter, WebSocket
 router = APIRouter()
 
 # TODO processor 지정하기
 @router.websocket("/ws")
 async def websocket_basic(websocket: WebSocket):
-    ctx = websocket.app.state.ctx  # 이 줄은 유지
-    await ctx.ws_handler.connect(websocket)  # 이 안에서 accept 수행
-    await ctx.ws_handler.receive_and_respond(websocket, mode="basic")
+    ctx = websocket.app.state.ctx
+    await ctx.ws_handler.connect(websocket)
+    await ctx.ws_handler.receive_and_respond(
+        websocket,
+        mode="basic",
+        processor=echo_processor  # ✅ processor 함수 지정
+    )
+
+async def echo_processor(message: str, mode: str, tid: int):
+    # 간단한 Echo 및 메타데이터 추가 예시
+    return {
+        "status": "success",
+        "mode": mode,
+        "tid": tid,
+        "echo": message.upper(),  # 받은 메시지를 대문자로 반환
+        "length": len(message)
+    }
 
 # TODO
 # msg 처리흐름: 웹소켓으로 수신, redis Stream에 기록, redis Hash에 응답 상태 기록, rabbitmq 큐에 메시지 전송
