@@ -1,6 +1,6 @@
 # redis_handler.py
 
-import redis
+from redis.asyncio import Redis
 from redis.exceptions import RedisError, ConnectionError
 
 
@@ -8,16 +8,20 @@ class RedisHandler:
     def __init__(self, ctx):
         self.log = ctx.log
         self.cfg = ctx.cfg.redis
-        self.client = None
+        self.client: Redis = None
 
-    def connect(self):
+    async def connect(self):
         try:
-            if self.client and self.client.ping():
-                self.log.info("Redis already connected")
-                return
+            if self.client:
+                try:
+                    if await self.client.ping():
+                        self.log.info("Redis already connected")
+                        return
+                except Exception:
+                    pass  # 연결 끊겼을 수 있음 → 재연결 진행
 
             self.log.debug("Connecting to Redis...")
-            self.client = redis.Redis(
+            self.client = Redis(
                 host=self.cfg.host,
                 port=self.cfg.port,
                 db=self.cfg.db,
@@ -25,7 +29,7 @@ class RedisHandler:
                 decode_responses=True
             )
 
-            if self.client.ping():
+            if await self.client.ping():
                 self.log.info("Redis connection established")
             else:
                 self.log.warning("Redis ping failed")
@@ -34,18 +38,16 @@ class RedisHandler:
             self.log.error(f"Redis connection error: {str(e)}")
             raise
 
-    def disconnect(self):
+    async def disconnect(self):
         if self.client:
             try:
-                if self.client.ping():
-                    self.client.close()
-                    self.log.info("Redis connection closed")
-                else:
-                    self.log.warning("Redis connection already closed or lost")
+                await self.client.close()
+                self.log.info("Redis connection closed")
             except Exception as e:
                 self.log.warning(f"Redis disconnect failed: {str(e)}")
 
-    def get_client(self):
+    # 사용할 때 비동기 호출 (await client.get(...))
+    def get_client(self) -> Redis:
         if not self.client:
             raise RuntimeError("Redis client is not connected")
         return self.client

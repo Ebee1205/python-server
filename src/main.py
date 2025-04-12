@@ -43,6 +43,7 @@ async def on_startup():
         # websocket 초기화
         ctx._init_websocket()
         ctx._init_redis()
+        await ctx.redis_handler.connect()
 
         ctx.log.info("App initialization complete")
 
