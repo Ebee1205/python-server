@@ -3,6 +3,10 @@
 # routes/websocket_basic.py
 
 from fastapi import APIRouter, WebSocket
+
+import time
+from src.utils import redis_utils
+
 router = APIRouter()
 
 # TODO processor 지정하기
@@ -13,18 +17,41 @@ async def websocket_basic(websocket: WebSocket):
     await ctx.ws_handler.receive_and_respond(
         websocket,
         mode="basic",
-        processor=echo_processor  # ✅ processor 함수 지정
+        processor=process_chat_message  # ✅ processor 함수 지정
     )
 
-async def echo_processor(message: str, mode: str, tid: int):
-    # 간단한 Echo 및 메타데이터 추가 예시
-    return {
-        "status": "success",
-        "mode": mode,
+async def process_chat_message(ctx, message):
+    stream_key = "chat_stream"
+
+    session_id = message["session_id"]
+    user_id = message["user_id"]
+    text = message["text"]
+    tid = message.get("tid") or str(int(time.time() * 1000))  # 트랜잭션 ID
+    hash_key = f"chat:session:{session_id}"
+    msg_id = str(int(time.time()))
+
+    # 1. Redis Stream 기록
+    stream_result = await redis_utils.redis_stream_add(ctx, stream_key, {
+        "session_id": session_id,
+        "user_id": user_id,
+        "text": text,
+        "type": "user",
+        "msg_id": msg_id,
         "tid": tid,
-        "echo": message.upper(),  # 받은 메시지를 대문자로 반환
-        "length": len(message)
-    }
+        "state": "pending"
+    })
+
+    if not stream_result:
+        raise RuntimeError("❌ Stream 기록 실패")
+
+    # 2. Redis Hash 상태 업데이트
+    hash_update = await redis_utils.redis_hset(ctx, hash_key, "state", "waiting_ai")
+    hash_time = await redis_utils.redis_hset(ctx, hash_key, "last_updated", tid)
+
+    if not hash_update:
+        ctx.log.warning(f"⚠️ 상태 업데이트 실패 - session: {session_id}")
+
+
 
 # TODO
 # msg 처리흐름: 웹소켓으로 수신, redis Stream에 기록, redis Hash에 응답 상태 기록, rabbitmq 큐에 메시지 전송

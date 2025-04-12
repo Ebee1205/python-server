@@ -2,9 +2,11 @@
 
 from fastapi import WebSocket, WebSocketDisconnect
 import time
+import json
 
 class WebSocketHandler:
     def __init__(self, ctx):
+        self.ctx = ctx
         self.log = ctx.log
         self.active_connections = []
 
@@ -21,21 +23,20 @@ class WebSocketHandler:
     async def receive_and_respond(self, websocket: WebSocket, mode="default", processor=None):
         try:
             while True:
-                message = await websocket.receive_text()
-                self.log.debug(f"[{mode.upper()}] Received: {message}")
-
-                timestamp = int(time.time())
+                str_msg = await websocket.receive_text()
+                self.log.debug(f"[{mode.upper()}] Received: {str_msg}")
+                msg = json.loads(str_msg)
 
                 # processor가 없으면 기본 처리
                 if processor:
-                    response = await processor(message, mode, timestamp)
+                    response = await processor(self.ctx, msg)
                 else:
                     # TODO Header, Body 구분하여 작성하기
                     response = {
                         "status": "success",
                         "mode": mode,
-                        "tid": timestamp,
-                        "data": message
+                        "tid": int(time.time()),
+                        "data": msg
                     }
 
                 await websocket.send_json(response)
