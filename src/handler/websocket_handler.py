@@ -29,7 +29,7 @@ class WebSocketHandler:
 
                 # processor가 없으면 기본 처리
                 if processor:
-                    response = await processor(self.ctx, msg)
+                    response = await processor(websocket, msg)
                 else:
                     # TODO Header, Body 구분하여 작성하기
                     response = {

@@ -105,13 +105,13 @@ async def redis_expire(ctx, key, ttl):
 
 
 # 해시 구조의 필드에 값 설정
-# - return: 새 필드이면 1, 기존 필드 덮어쓰기이면 0
+# - return: True (성공), False (실패)
 async def redis_hset(ctx, key, field, value):
     try:
         client = ctx.redis_handler.client
         result = await client.hset(key, field, value)
-        ctx.log.debug(f"HSET key: {key}, field: {field}, value: {value}")
-        return result
+        ctx.log.debug(f"HSET key: {key}, field: {field}, value: {value} → result: {result}")
+        return True  # 성공으로 처리
     except RedisError as e:
         ctx.log.error(f"redis_hset error - key: {key}, field: {field}, error: {str(e)}")
         return False

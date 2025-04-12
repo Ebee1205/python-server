@@ -11,4 +11,5 @@ async def ping(request: Request):
     ctx = request.app.state.ctx
     return basic_service.ping(ctx)
 
-# 
+
+# POST /api/session/chat
