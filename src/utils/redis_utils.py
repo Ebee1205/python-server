@@ -9,10 +9,10 @@ async def redis_get(ctx, key):
     try:
         client = ctx.redis_handler.client
         value = await client.get(key)
-        ctx.log.debug(f"GET key: {key} → {value}")
+        ctx.log.debug(f"[redis] GET key: {key} → {value}")
         return value
     except RedisError as e:
-        ctx.log.error(f"redis_get error - key: {key}, error: {str(e)}")
+        ctx.log.error(f"[redis] GET error - key: {key}, error: {str(e)}")
         return None
 
 
@@ -24,11 +24,11 @@ async def redis_set(ctx, key, value, expire_sec=None):
         client = ctx.redis_handler.client
         success = await client.set(key, value, ex=expire_sec)
         if not success:
-            ctx.log.warning(f"SET command failed - key: {key}")
-        ctx.log.debug(f"SET key: {key}, value: {value}, expire: {expire_sec}")
+            ctx.log.warning(f"[redis] SET command failed - key: {key}")
+        ctx.log.debug(f"[redis] SET key: {key}, value: {value}, expire: {expire_sec}")
         return success
     except RedisError as e:
-        ctx.log.error(f"redis_set error - key: {key}, error: {str(e)}")
+        ctx.log.error(f"[redis] SET error - key: {key}, error: {str(e)}")
         return False
 
 
@@ -39,13 +39,13 @@ async def redis_update(ctx, key, new_value):
         client = ctx.redis_handler.client
         if await client.exists(key) > 0:
             await client.set(key, new_value)
-            ctx.log.debug(f"UPDATE key: {key}, new_value: {new_value}")
+            ctx.log.debug(f"[redis] UPDATE key: {key}, new_value: {new_value}")
             return True
         else:
             ctx.log.warning(f"Key not found for update: {key}")
             return False
     except RedisError as e:
-        ctx.log.error(f"redis_update error - key: {key}, error: {str(e)}")
+        ctx.log.error(f"[redis] UPDATE error - key: {key}, error: {str(e)}")
         return False
 
 
@@ -57,10 +57,10 @@ async def redis_search_by_prefix(ctx, prefix):
         pattern = f"{prefix}*"
         keys = await client.keys(pattern)
         results = {k: await client.get(k) for k in keys}
-        ctx.log.debug(f"SEARCH prefix: {prefix}, found: {len(results)} keys")
+        ctx.log.debug(f"[redis] SEARCH prefix: {prefix}, found: {len(results)} keys")
         return results
     except RedisError as e:
-        ctx.log.error(f"redis_search_by_prefix error - prefix: {prefix}, error: {str(e)}")
+        ctx.log.error(f"[redis] search_by_prefix error - prefix: {prefix}, error: {str(e)}")
         return {}
 
 
@@ -70,10 +70,10 @@ async def redis_delete(ctx, key):
     try:
         client = ctx.redis_handler.client
         result = await client.delete(key)
-        ctx.log.debug(f"DELETE key: {key}, deleted: {result}")
+        ctx.log.debug(f"[redis] DELETE key: {key}, deleted: {result}")
         return result > 0
     except RedisError as e:
-        ctx.log.error(f"redis_delete error - key: {key}, error: {str(e)}")
+        ctx.log.error(f"[redis] DELETE error - key: {key}, error: {str(e)}")
         return False
 
 
