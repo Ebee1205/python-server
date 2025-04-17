@@ -1,3 +1,16 @@
+"""
+Project: Ankoko-web-server
+Author: wavicle (GitHub: @Eunbee1205)
+Email: spiverain02@gmail.com
+License: All rights reserved. Commercial use requires a license.
+@file main.py
+
+© 2025 wavicle. All rights reserved.
+
+Unauthorized copying of this file, via any medium, is strictly prohibited.
+Proprietary and confidential.
+"""
+
 # main.py
 
 from fastapi import FastAPI, WebSocket

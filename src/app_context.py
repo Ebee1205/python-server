@@ -1,3 +1,16 @@
+"""
+Project: Ankoko-web-server
+Author: wavicle (GitHub: @Eunbee1205)
+Email: spiverain02@gmail.com
+License: All rights reserved. Commercial use requires a license.
+@file app_context.py
+
+© 2025 wavicle. All rights reserved.
+
+Unauthorized copying of this file, via any medium, is strictly prohibited.
+Proprietary and confidential.
+"""
+
 # app_context.py
 import json
 
@@ -68,8 +81,6 @@ class AppConfig(BaseModel):
     mysql: MySQLConfig
     redis: RedisConfig
     rmq: RMQConfig
-
-
 
 class AppContext:
     def __init__(self):
