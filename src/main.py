@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.app_context import AppContext
 from src.routes.websocket_basic import router as basic_ws_router
 from src.routes.basic_api import router as basic_router
+from src.routes.session_api import router as session_router
 
 
 app = FastAPI()
@@ -41,6 +42,7 @@ print(f"CORS 설정 완료: {cors.allow_origins}")
 # TODO websocket_router.py 등으로 분리
 app.include_router(basic_ws_router)
 app.include_router(basic_router)
+app.include_router(session_router)
 
 # 👉 이제야 on_startup 가능
 @app.on_event("startup")

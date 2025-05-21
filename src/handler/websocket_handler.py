@@ -8,17 +8,32 @@ class WebSocketHandler:
     def __init__(self, ctx):
         self.ctx = ctx
         self.log = ctx.log
-        self.active_connections = []
+        self.active_connections = {}
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        self.active_connections.append(websocket)
-        self.log.debug(f"[WS] Connected: {websocket.client}")
+        sid = websocket.query_params.get("sid")
+
+        if not sid:
+            await websocket.close(code=4001)
+            return
+
+        # Redis에서 세션 존재 여부 확인
+        # session_raw = self.ctx.redis.get(f"session:{sid}")
+        # if not session_raw:
+        #     await websocket.close(code=4002)
+        #     return
+
+        self.active_connections[sid] = websocket
+        self.log.debug(f"[WS] Connected: {sid}")
 
     def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
-            self.log.debug(f"[WS] Disconnected: {websocket.client}")
+        # sid → websocket 제거
+        for sid, ws in list(self.active_connections.items()):
+            if ws == websocket:
+                del self.active_connections[sid]
+                self.log.debug(f"[WS] Disconnected: {sid}")
+                break
 
     async def receive_and_respond(self, websocket: WebSocket, processor):
         try:
@@ -49,5 +64,9 @@ class WebSocketHandler:
             })
             self.disconnect(websocket)
 
+    async def send_to_sid(self, sid: str, data: dict):
+        ws = self.active_connections.get(sid)
+        if ws:
+            await ws.send_json(data)
 
 # TODO processor 패턴으로 변경됨, service 하위에 processor넣고... 근데 네이밍을 그냥 processor로 해도 될듯
