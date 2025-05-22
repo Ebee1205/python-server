@@ -9,10 +9,11 @@ async def redis_get(ctx, key):
     try:
         client = ctx.redis_handler.client
         value = await client.get(key)
-        ctx.log.debug(f"[redis] GET key: {key} → {value}")
+        ctx.log.debug(f"[REDIS]    == GET {key} > {value}")
+
         return value
     except RedisError as e:
-        ctx.log.error(f"[redis] GET error - key: {key}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- GET error: {key}, {str(e)}")
         return None
 
 
@@ -24,11 +25,11 @@ async def redis_set(ctx, key, value, expire_sec=None):
         client = ctx.redis_handler.client
         success = await client.set(key, value, ex=expire_sec)
         if not success:
-            ctx.log.warning(f"[redis] SET command failed - key: {key}")
-        ctx.log.debug(f"[redis] SET key: {key}, value: {value}, expire: {expire_sec}")
+            ctx.log.warning(f"[REDIS]    - SET failed: {key}")
+        ctx.log.debug(f"[REDIS]    !! SET {key} = {value} (expire: {expire_sec})")
         return success
     except RedisError as e:
-        ctx.log.error(f"[redis] SET error - key: {key}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- SET error: {key}, {str(e)}")
         return False
 
 
@@ -39,13 +40,13 @@ async def redis_update(ctx, key, new_value):
         client = ctx.redis_handler.client
         if await client.exists(key) > 0:
             await client.set(key, new_value)
-            ctx.log.debug(f"[redis] UPDATE key: {key}, new_value: {new_value}")
+            ctx.log.debug(f"[REDIS]    !! UPDATE {key} = {new_value}")
             return True
         else:
-            ctx.log.warning(f"Key not found for update: {key}")
+            ctx.log.warning(f"[REDIS]    - UPDATE failed: {key} not found")
             return False
     except RedisError as e:
-        ctx.log.error(f"[redis] UPDATE error - key: {key}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- UPDATE error: {key}, {str(e)}")
         return False
 
 
@@ -57,10 +58,10 @@ async def redis_search_by_prefix(ctx, prefix):
         pattern = f"{prefix}*"
         keys = await client.keys(pattern)
         results = {k: await client.get(k) for k in keys}
-        ctx.log.debug(f"[redis] SEARCH prefix: {prefix}, found: {len(results)} keys")
+        ctx.log.debug(f"[REDIS] SEARCH prefix: {prefix}, found: {len(results)} keys")
         return results
     except RedisError as e:
-        ctx.log.error(f"[redis] search_by_prefix error - prefix: {prefix}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- SEARCH error: {prefix}, {str(e)}")
         return {}
 
 
@@ -70,10 +71,10 @@ async def redis_delete(ctx, key):
     try:
         client = ctx.redis_handler.client
         result = await client.delete(key)
-        ctx.log.debug(f"[redis] DELETE key: {key}, deleted: {result}")
+        ctx.log.debug(f"[REDIS]    -- DELETE {key} > {result}")
         return result > 0
     except RedisError as e:
-        ctx.log.error(f"[redis] DELETE error - key: {key}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- DELETE error: {key}, {str(e)}")
         return False
 
 
@@ -83,10 +84,10 @@ async def redis_exists(ctx, key):
     try:
         client = ctx.redis_handler.client
         result = await client.exists(key) > 0
-        ctx.log.debug(f"EXISTS key: {key} → {result}")
+        ctx.log.debug(f"[REDIS]    == EXISTS {key} > {result}")
         return result
     except RedisError as e:
-        ctx.log.error(f"redis_exists error - key: {key}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- EXISTS error: {key}, {str(e)}")
         return False
 
 
@@ -97,10 +98,10 @@ async def redis_expire(ctx, key, ttl):
     try:
         client = ctx.redis_handler.client
         result = await client.expire(key, ttl)
-        ctx.log.debug(f"EXPIRE key: {key}, ttl: {ttl} → result: {result}")
+        ctx.log.debug(f"[REDIS]    !! EXPIRE {key} = {ttl} > {result}")
         return result
     except RedisError as e:
-        ctx.log.error(f"redis_expire error - key: {key}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- EXPIRE error: {key}, {str(e)}")
         return False
 
 
@@ -110,10 +111,10 @@ async def redis_hset(ctx, key, field, value):
     try:
         client = ctx.redis_handler.client
         result = await client.hset(key, field, value)
-        ctx.log.debug(f"HSET key: {key}, field: {field}, value: {value} → result: {result}")
+        ctx.log.debug(f"[REDIS]    !! HSET {key}[{field}] = {value}")
         return True  # 성공으로 처리
     except RedisError as e:
-        ctx.log.error(f"redis_hset error - key: {key}, field: {field}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- HSET error: {key}[{field}], {str(e)}")
         return False
 
 
@@ -123,10 +124,10 @@ async def redis_hget(ctx, key, field):
     try:
         client = ctx.redis_handler.client
         value = await client.hget(key, field)
-        ctx.log.debug(f"HGET key: {key}, field: {field} → {value}")
+        ctx.log.debug(f"[REDIS]    == HGET {key}[{field}] > {value}")
         return value
     except RedisError as e:
-        ctx.log.error(f"redis_hget error - key: {key}, field: {field}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- HGET error: {key}[{field}], {str(e)}")
         return None
 
 
@@ -135,10 +136,10 @@ async def redis_stream_add(ctx, stream_key, message: dict):
     try:
         client = ctx.redis_handler.client
         message_id = await client.xadd(stream_key, message)
-        ctx.log.debug(f"XADD stream: {stream_key}, id: {message_id}, message: {message}")
+        ctx.log.debug(f"[REDIS]    ++ XADD {stream_key} > {message_id}, {message}")
         return message_id
     except RedisError as e:
-        ctx.log.error(f"redis_stream_add error - stream: {stream_key}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- XADD error: {stream_key}, {str(e)}")
         return None
 
 
@@ -147,10 +148,10 @@ async def redis_stream_read(ctx, stream_key, last_id="$", block_ms=0):
     try:
         client = ctx.redis_handler.client
         response = await client.xread({stream_key: last_id}, block=block_ms)
-        ctx.log.debug(f"XREAD stream: {stream_key}, last_id: {last_id} → response: {response}")
+        ctx.log.debug(f"[REDIS]    == XREAD {stream_key} from {last_id} > {response}")
         return response
     except RedisError as e:
-        ctx.log.error(f"redis_stream_read error - stream: {stream_key}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- XREAD error: {stream_key}, {str(e)}")
         return []
 
 
@@ -159,10 +160,10 @@ async def redis_stream_group_read(ctx, group, consumer, stream_key, count=1):
     try:
         client = ctx.redis_handler.client
         response = await client.xreadgroup(group, consumer, {stream_key: ">"}, count=count)
-        ctx.log.debug(f"XREADGROUP group: {group}, consumer: {consumer}, stream: {stream_key} → {response}")
+        ctx.log.debug(f"[REDIS]    == XREADGROUP {group}/{consumer} > {response}")
         return response
     except RedisError as e:
-        ctx.log.error(f"redis_stream_group_read error - group: {group}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- XREADGROUP error: {group}, {str(e)}")
         return []
 
 
@@ -171,10 +172,10 @@ async def redis_stream_ack(ctx, stream_key, group, message_id):
     try:
         client = ctx.redis_handler.client
         result = await client.xack(stream_key, group, message_id)
-        ctx.log.debug(f"XACK stream: {stream_key}, group: {group}, id: {message_id} → {result}")
+        ctx.log.debug(f"[REDIS]    !! XACK {stream_key}/{group} > {message_id} > {result}")
         return result
     except RedisError as e:
-        ctx.log.error(f"redis_stream_ack error - stream: {stream_key}, id: {message_id}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- XACK error: {stream_key}, {message_id}, {str(e)}")
         return False
 
 
@@ -183,11 +184,11 @@ async def redis_stream_create_group(ctx, stream_key, group_name):
     try:
         client = ctx.redis_handler.client
         await client.xgroup_create(stream_key, group_name, id="0", mkstream=True)
-        ctx.log.debug(f"XGROUP CREATE stream: {stream_key}, group: {group_name}")
+        ctx.log.debug(f"[REDIS]    ++ XGROUP.CREATE {stream_key} > {group_name}")
         return True
     except RedisError as e:
         if "BUSYGROUP" in str(e):
-            ctx.log.debug(f"Group already exists: {group_name} on stream: {stream_key}")
+            ctx.log.debug(f"[REDIS]    - XGROUP already exists: {group_name} on {stream_key}")
             return True
-        ctx.log.error(f"redis_stream_create_group error - stream: {stream_key}, error: {str(e)}")
+        ctx.log.error(f"[REDIS]    -- XGROUP.CREATE error: {stream_key}, {str(e)}")
         return False

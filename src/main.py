@@ -49,6 +49,7 @@ app.include_router(session_router)
 async def on_startup():
     try:
         # 눈에 보여서 이렇게 작성하긴 했는데 보고 config() 혹은 init()으로 묶어서 작성하는것도 고려해보기
+        print("     - Initializing application...")
         ctx = app.state.ctx
 
         # logger 초기화
@@ -60,10 +61,10 @@ async def on_startup():
         ctx._init_redis()
         await ctx.redis_handler.connect()
 
-        ctx.log.info("App initialization complete")
+        ctx.log.info("     == Initialization complete")
 
     except Exception as e:
-        print("🚨 초기화 중 오류 발생:", str(e))
+        ctx.log.error(f"     -- Initialization error: {str(e)}")
         import traceback
         traceback.print_exc()
         raise
@@ -72,22 +73,22 @@ async def on_startup():
 async def on_shutdown():
     ctx = app.state.ctx
     if ctx.log:
-        ctx.log.info("Cleaning up resources...")
+        ctx.log.info("     -- Shutting down application")
 
     # TODO app_context.py에 _destroy() 메서드로 추가 고려해보기
     if ctx.ws_handler:
         try:
             ctx.ws_handler.disconnect()
-            ctx.log.info("DB handler closed")
+            ctx.log.info("     -- WebSocket handler closed")
         except Exception as e:
-            ctx.log.warning(f"DB close failed: {e}")
+            ctx.log.warning(f"     - WebSocket close failed: {e}")
 
     if ctx.redis_handler:
         try:
             ctx.redis_handler.close()
-            ctx.log.info("Redis handler closed")
+            ctx.log.info("     -- Redis handler closed")
         except Exception as e:
-            ctx.log.warning(f"Redis close failed: {e}")
+            ctx.log.warning(f"     - Redis close failed: {e}")
             
     # if ctx.db_handler:
     #     try:

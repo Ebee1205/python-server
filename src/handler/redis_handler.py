@@ -3,7 +3,6 @@
 from redis.asyncio import Redis
 from redis.exceptions import RedisError, ConnectionError
 
-
 class RedisHandler:
     def __init__(self, ctx):
         self.log = ctx.log
@@ -15,12 +14,13 @@ class RedisHandler:
             if self.client:
                 try:
                     if await self.client.ping():
-                        self.log.info("Redis already connected")
+                        self.log.info("[REDIS]    == Already connected")
                         return
                 except Exception:
-                    pass  # 연결 끊겼을 수 있음 → 재연결 진행
+                    self.log.warning("[REDIS]    - Ping failed, reconnecting")
+                    pass  # 연결 끊겼을 수 있음 재연결 진행
 
-            self.log.debug("Connecting to Redis...")
+            self.log.debug("[REDIS]    - Connecting...")
             self.client = Redis(
                 host=self.cfg.host,
                 port=self.cfg.port,
@@ -30,24 +30,25 @@ class RedisHandler:
             )
 
             if await self.client.ping():
-                self.log.info("Redis connection established")
+                self.log.info("[REDIS]    == Connected")
             else:
-                self.log.warning("Redis ping failed")
+                self.log.warning("[REDIS]    - Ping returned false")
 
         except (RedisError, ConnectionError) as e:
-            self.log.error(f"Redis connection error: {str(e)}")
+            self.log.error(f"[REDIS]    -- Connection error: {str(e)}")
             raise
 
     async def disconnect(self):
         if self.client:
             try:
                 await self.client.close()
-                self.log.info("Redis connection closed")
+                self.log.info("[REDIS]    -- Disconnected")
             except Exception as e:
-                self.log.warning(f"Redis disconnect failed: {str(e)}")
+                self.log.warning(f"[REDIS]    - Disconnect failed: {str(e)}")
 
     # 사용할 때 비동기 호출 (await client.get(...))
     def get_client(self) -> Redis:
         if not self.client:
+            self.log.error("[REDIS]    - Client not connected")
             raise RuntimeError("Redis client is not connected")
         return self.client
