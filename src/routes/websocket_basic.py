@@ -3,73 +3,24 @@
 # routes/websocket_basic.py
 
 from fastapi import APIRouter, WebSocket
-
-import time
-from src.utils import redis_utils
+from src.service.ws_processor import processor
 
 router = APIRouter()
 
 # TODO processor 지정하기
-@router.websocket("/ws")
-async def websocket_basic(websocket: WebSocket):
+@router.websocket("/chat")
+async def websocket_chat(websocket: WebSocket):
     ctx = websocket.app.state.ctx
-    await ctx.ws_handler.connect(websocket)
-    await ctx.ws_handler.receive_and_respond(
-        websocket,
-        mode="basic",
-        processor=process_chat_message  # ✅ processor 함수 지정
-    )
 
-async def process_chat_message(websocket, message):
-    ctx = websocket.app.state.ctx
-    
-    stream_key = "chat_stream"
-    session_id = message["session_id"]
-    user_id = message["user_id"]
-    text = message["text"]
-    tid = message.get("tid") or str(int(time.time() * 1000))  # 트랜잭션 ID
-    hash_key = f"chat:session:{session_id}"
-    msg_id = str(int(time.time()))
+    # 쿼리 파라미터에서 sid 추출
+    sid = websocket.query_params.get("sid")
+    if not sid:
+        await websocket.close(code=4001)
+        return
 
-
-   # AI 생성 중 알림 보내기
-   # TODO 관련 로그 추가
-    await websocket.send_json({
-        "status": "processing",
-        "msg_id": msg_id,
-        "session_id": session_id,
-        "message": "🤖 AI 응답을 생성 중입니다..."
-    })
-
-    # 1. Redis Stream 기록
-    stream_result = await redis_utils.redis_stream_add(ctx, stream_key, {
-        "session_id": session_id,
-        "user_id": user_id,
-        "text": text,
-        "type": "user",
-        "msg_id": msg_id,
-        "tid": tid,
-        "state": "pending"
-    })
-
-    if not stream_result:
-        raise RuntimeError("❌ Stream 기록 실패")
-
-    # 2. Redis Hash 상태 업데이트
-    hash_update = await redis_utils.redis_hset(ctx, hash_key, "state", "waiting_ai")
-    hash_time = await redis_utils.redis_hset(ctx, hash_key, "last_updated", tid)
-
-    if not hash_update:
-        ctx.log.warning(f"⚠️ 상태 업데이트 실패 - session: {session_id}")
-
-    return {
-        "status": "S0000",
-        "msg_id": msg_id,
-        "tid": tid,
-        "session_id": session_id,
-        "user_id": user_id,
-        "state": "processed_msg"
-    }
+    # sid 전달하여 로그용 식별자 사용
+    await ctx.ws_handler.connect(websocket, id=sid)
+    await ctx.ws_handler.receive_and_respond(websocket, processor=processor)
 
 # TODO
 # msg 처리흐름: 웹소켓으로 수신, redis Stream에 기록, redis Hash에 응답 상태 기록, rabbitmq 큐에 메시지 전송
