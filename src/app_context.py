@@ -127,6 +127,13 @@ class AppContext:
 
         self.log.debug("end init Redis")
 
+    def _init_rmq(self):
+        self.log.debug("start init RabbitMQ")
+
+        # self.rmq_handler = RabbitMQHandler(self)
+
+        self.log.debug("end init RabbitMQ")
+
 
     # def _init_mysql(self):
     # def _init_rmq(self):
