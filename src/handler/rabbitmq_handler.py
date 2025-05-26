@@ -46,9 +46,12 @@ class RabbitMQHandler:
 
     async def disconnect(self):
         if self.connection:
-            self.log.debug("[RMQ]     - Disconnecting...")
-            await self.connection.close()
-            self.log.info("[RMQ]     -- Disconnected")
+            try:
+                self.log.debug("[RMQ]     - Disconnecting...")
+                await self.connection.close()
+                self.log.info("[RMQ]     -- Disconnected")
+            except Exception as e:
+                self.log.warning(f"[RMQ]    - Disconnect failed: {str(e)}")
 
     def get_exchange(self):
         if not self.exchange:

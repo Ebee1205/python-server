@@ -56,7 +56,7 @@ async def on_startup():
         ctx._init_logger()
         test_logging(ctx.log)
         
-        # websocket 초기화
+        # 초기화
         ctx._init_websocket()
         ctx._init_redis()
         ctx._init_rmq()
@@ -82,14 +82,21 @@ async def on_shutdown():
     # TODO app_context.py에 _destroy() 메서드로 추가 고려해보기
     if ctx.ws_handler:
         try:
-            ctx.ws_handler.disconnect()
+            await ctx.ws_handler.disconnect_all()
             ctx.log.info("     -- WebSocket handler closed")
         except Exception as e:
             ctx.log.warning(f"     - WebSocket close failed: {e}")
 
+    if ctx.rmq_handler:
+        try:
+            await ctx.rmq_handler.disconnect()
+            ctx.log.info("     -- RabbitMQ handler closed")
+        except Exception as e:
+            ctx.log.warning(f"     - RabbitMQ close failed: {e}")
+
     if ctx.redis_handler:
         try:
-            ctx.redis_handler.close()
+            await ctx.redis_handler.disconnect()
             ctx.log.info("     -- Redis handler closed")
         except Exception as e:
             ctx.log.warning(f"     - Redis close failed: {e}")

@@ -41,6 +41,7 @@ class RedisHandler:
     async def disconnect(self):
         if self.client:
             try:
+                self.log.debug("[REDIS]     - Disconnecting...")
                 await self.client.close()
                 self.log.info("[REDIS]    -- Disconnected")
             except Exception as e:

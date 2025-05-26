@@ -50,3 +50,12 @@ class WebSocketHandler:
                 "errMsg": str(e)
             })
             self.disconnect(websocket)
+
+    async def disconnect_all(self):
+        self.log.info("[WS]     - Disconnecting all clients...")
+        for websocket in list(self.active_connections):  # 복사본 사용
+            try:
+                await websocket.close()
+            except Exception as e:
+                self.log.warning(f"[WS]     - Failed to close client {websocket.client}: {e}")
+            self.disconnect(websocket)  # 내부적으로 remove + log
