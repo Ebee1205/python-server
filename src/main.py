@@ -48,7 +48,7 @@ app.include_router(session_router)
 @app.on_event("startup")
 async def on_startup():
     try:
-        # 눈에 보여서 이렇게 작성하긴 했는데 보고 config() 혹은 init()으로 묶어서 작성하는것도 고려해보기
+        # TODO 눈에 보여서 이렇게 작성하긴 했는데 보고 config() 혹은 init()으로 묶어서 작성하는것도 고려해보기
         print("     - Initializing application...")
         ctx = app.state.ctx
 
@@ -107,14 +107,6 @@ async def on_shutdown():
     #         ctx.log.info("DB handler closed")
     #     except Exception as e:
     #         ctx.log.warning(f"DB close failed: {e}")
-
-
-    # if ctx.rmq_handler:
-    #     try:
-    #         ctx.rmq_handler.disconnect()
-    #         ctx.log.info("RMQ handler disconnected")
-    #     except Exception as e:
-    #         ctx.log.warning(f"RMQ disconnect failed: {e}")
 
 def test_logging(logger):
     logger.info("-- FILE LOG TEST START --")

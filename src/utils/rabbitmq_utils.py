@@ -32,3 +32,5 @@ async def rmq_send_response(ctx, queue_name: str, body: dict):
 
     except Exception as e:
         log.error(f"[RMQ] Failed to send response '{queue_name}': {e}")
+
+# TODO rmq_send_error(ctx, queue_name, message, error_msg) 로 에러메시지 표준화

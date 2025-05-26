@@ -1,6 +1,6 @@
 {
     "environment": "local",
-    "project_name": "MyFastAPIProject",
+    "project_name": "Ankoko",
     "api_v1_str": "/api/v1",
     "host": "localhost",
     "port": 3000,

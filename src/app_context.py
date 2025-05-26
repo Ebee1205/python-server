@@ -135,8 +135,5 @@ class AppContext:
 
         self.log.debug("end init RabbitMQ")
 
-
-    # def _init_mysql(self):
-    # def _init_rmq(self):
-
-    # _destroy() 메서드 추가
+    # TODO def _init_mysql(self):
+    # TODO _destroy() 메서드 추가
