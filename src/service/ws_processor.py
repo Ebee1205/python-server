@@ -1,4 +1,4 @@
-# ws_processor.py
+# service/ws_processor.py
 
 import time
 from src.utils import redis_utils

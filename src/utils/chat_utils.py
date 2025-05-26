@@ -1,4 +1,5 @@
-# service/chat_utils.py
+# utils/chat_utils.py
+
 # redis_utils.py의 유틸 함수를 이용해 채팅 관련한 state관리 등 작성 예시
 # TODO 패킷 규격 설계 후 맞춰야할 듯.
 

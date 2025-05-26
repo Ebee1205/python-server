@@ -1,4 +1,4 @@
-# src/handler/websocket_handler.py
+# handler/websocket_handler.py
 from fastapi import WebSocket, WebSocketDisconnect
 import json
 

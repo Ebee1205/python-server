@@ -1,4 +1,4 @@
-# redis_handler.py
+# handler/redis_handler.py
 
 from redis.asyncio import Redis
 from redis.exceptions import RedisError, ConnectionError
