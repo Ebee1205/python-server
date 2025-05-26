@@ -2,6 +2,7 @@
 
 import time
 from src.utils import redis_utils
+from src.utils import rabbitmq_utils
 
 async def processor(ctx, websocket, msg):
     msg_type = msg.get("type")
@@ -39,7 +40,7 @@ async def process_chat_message(ctx, websocket, message):
     })
 
     # 1. Redis Stream 기록
-    stream_result = await redis_utils.redis_stream_add(ctx, stream_key, {
+    stream_msg = {
         "session_id": session_id,
         "user_id": user_id,
         "text": text,
@@ -47,7 +48,8 @@ async def process_chat_message(ctx, websocket, message):
         "msg_id": msg_id,
         "tid": tid,
         "state": "pending"
-    })
+    }
+    stream_result = await redis_utils.redis_stream_add(ctx, stream_key, stream_msg)
 
     if not stream_result:
         raise RuntimeError("❌ Stream 기록 실패")
@@ -55,6 +57,8 @@ async def process_chat_message(ctx, websocket, message):
     # 2. Redis Hash 상태 업데이트
     hash_update = await redis_utils.redis_hset(ctx, hash_key, "state", "waiting_ai")
     hash_time = await redis_utils.redis_hset(ctx, hash_key, "last_updated", tid)
+
+    rabbitmq_utils.rmq_send_response(ctx, "ankoko-to-algo", stream_msg)
 
     if not hash_update:
         ctx.log.warning(f"⚠️ 상태 업데이트 실패 - session: {session_id}")

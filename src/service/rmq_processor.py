@@ -1,6 +1,6 @@
 # service/rmq_processor.py
 
-from src.utils import redis_utils
+from src.utils import rabbitmq_utils
 
 # 메시지 라우터
 async def processor(ctx, msg):
@@ -15,7 +15,9 @@ async def processor(ctx, msg):
 
 # 핸들러 정의
 async def handle_rmq_ping(ctx, msg):
-    return {"status": "ok", "ankoko-from-algo": True}
+    msg = {"status": "ok", "ankoko-to-algo": True, "data": "ping"}
+    rabbitmq_utils.rmq_send_response(ctx, "ankoko-to-algo", msg), 
+    return msg
 
 async def handle_rmq_ping2(ctx, msg):
     return {"status": "ok", "ankoko-to-algo": True}

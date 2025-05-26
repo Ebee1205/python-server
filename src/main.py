@@ -44,7 +44,7 @@ app.include_router(basic_ws_router)
 app.include_router(basic_router)
 app.include_router(session_router)
 
-# 👉 이제야 on_startup 가능
+# 이제야 on_startup 가능
 @app.on_event("startup")
 async def on_startup():
     try:
