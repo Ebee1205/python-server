@@ -48,7 +48,8 @@
       "exchange": "my_exchange",
       "exchange_type": "direct",
       "queues": [
-        { "name": "queue_1", "processor": "router_1" }
+        { "name": "ankoko-from-algo", "processor": "router_1" },
+        { "name": "ankoko-to-algo", "processor": "router_2" }
       ],
       "routing_key": "my.routing.key",
       "heartbeat": 60,

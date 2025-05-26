@@ -15,11 +15,14 @@ async def processor(ctx, msg):
 
 # 핸들러 정의
 async def handle_rmq_ping(ctx, msg):
-    return {"status": "ok", "rmq": True}
+    return {"status": "ok", "ankoko-from-algo": True}
+
+async def handle_rmq_ping2(ctx, msg):
+    return {"status": "ok", "ankoko-to-algo": True}
 
 
 # 맵핑 테이블
 RMQ_PROCESSOR_MAP = {
     "router_1": handle_rmq_ping,
-    "router_2": handle_rmq_ping,
+    "router_2": handle_rmq_ping2,
 }
