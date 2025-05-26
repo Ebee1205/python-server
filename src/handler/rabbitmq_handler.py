@@ -1,10 +1,12 @@
-# rabbitmq_handler.py
+# handler/rabbitmq_handler.py
 
 import aio_pika
 from aio_pika import ExchangeType
 from aio_pika.abc import AbstractIncomingMessage
 from aio_pika.exceptions import AMQPConnectionError
 import json
+
+from src.service.rmq_processor import processor
 
 class RabbitMQHandler:
     def __init__(self, ctx):
@@ -63,7 +65,7 @@ class RabbitMQHandler:
     def get_config(self):
         return self.cfg
 
-    async def consume(self, queue_name: str, router):
+    async def consume(self, queue_name: str, processor=processor):
         if not self.channel:
             self.log.error("[RMQ]     - Channel not connected")
             raise RuntimeError("Channel is not connected")
@@ -74,13 +76,23 @@ class RabbitMQHandler:
             async with message.process():
                 try:
                     data = json.loads(message.body)
-                    await router(self.ctx, data)
+                    await processor(self.ctx, data)
+                    self.log.debug(f"[RMQ]     - Consume Msg: {data}")
+                    
                 except Exception as e:
                     self.log.error(f"[RMQ]     - Consume error ({queue_name}): {str(e)}")
 
         await queue.consume(_wrapped_callback)
         self.log.info(f"[RMQ]     == Consuming queue '{queue_name}'")
 
-    async def consume_multi(self, queue_router_pairs: list[tuple[str, callable]]):
-        for queue_name, router in queue_router_pairs:
-            await self.consume(queue_name, router)
+    async def consume_multi(self):
+        if not hasattr(self.cfg, "queues"):
+            self.log.error("[RMQ]     - No 'queues' defined in config")
+            return
+
+        for q in self.cfg.queues:
+            queue_name = q.get("name")
+            if not queue_name:
+                self.log.warning(f"[RMQ]     - Invalid queue config: {q}")
+                continue
+            await self.consume(queue_name)

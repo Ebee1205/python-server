@@ -59,6 +59,10 @@ async def on_startup():
         # websocket 초기화
         ctx._init_websocket()
         ctx._init_redis()
+        ctx._init_rmq()
+
+        await ctx.rmq_handler.connect()
+        await ctx.rmq_handler.consume_multi()
         await ctx.redis_handler.connect()
 
         ctx.log.info("     == Initialization complete")

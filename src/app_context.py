@@ -21,6 +21,7 @@ from typing import Optional
 import py_logger
 from src.handler.websocket_handler import WebSocketHandler
 from src.handler.redis_handler import RedisHandler
+from src.handler.rabbitmq_handler import RabbitMQHandler
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -54,7 +55,7 @@ class RMQConfig(BaseModel):
     vhost: str
     exchange: str
     exchange_type: str
-    queue: str
+    queues: list[dict]
     routing_key: str
     heartbeat: int
     reconnect_delay: int
@@ -130,7 +131,7 @@ class AppContext:
     def _init_rmq(self):
         self.log.debug("start init RabbitMQ")
 
-        # self.rmq_handler = RabbitMQHandler(self)
+        self.rmq_handler = RabbitMQHandler(self)
 
         self.log.debug("end init RabbitMQ")
 

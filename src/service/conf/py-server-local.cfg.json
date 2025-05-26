@@ -47,7 +47,9 @@
       "vhost": "/",
       "exchange": "my_exchange",
       "exchange_type": "direct",
-      "queue": "my_queue",
+      "queues": [
+        { "name": "queue_1", "processor": "router_1" }
+      ],
       "routing_key": "my.routing.key",
       "heartbeat": 60,
       "reconnect_delay": 5
