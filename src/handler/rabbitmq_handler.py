@@ -92,7 +92,15 @@ class RabbitMQHandler:
 
         for q in self.cfg.queues:
             queue_name = q.get("name")
-            if not queue_name:
+            queue_type = q.get("type")
+
+            if not queue_name or not queue_type:
                 self.log.warning(f"[RMQ]     - Invalid queue config: {q}")
                 continue
-            await self.consume(queue_name)
+
+            # req_que만 consume, res_que는 send 전용
+            if queue_type == "req":
+                await self.consume(queue_name, queue_type)
+            else:
+                self.log.debug(f"[RMQ]     - response queue ({queue_name}) type={queue_type}")
+
