@@ -43,7 +43,7 @@ class RedisHandler:
             try:
                 self.log.debug("[REDIS]     - Disconnecting...")
                 await self.client.close()
-                self.log.info("[REDIS]    -- Disconnected")
+                self.log.info("[REDIS]     -- Disconnected")
             except Exception as e:
                 self.log.warning(f"[REDIS]    - Disconnect failed: {str(e)}")
 

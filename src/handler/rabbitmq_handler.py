@@ -41,7 +41,7 @@ class RabbitMQHandler:
             self.log.info("[RMQ]     == Connected")
 
         except AMQPConnectionError as e:
-            self.log.error(f"[RMQ]     -- Connection error: {str(e)}")
+            self.log.error(f"[RMQ]     - Connection error: {str(e)}")
             raise
 
     async def disconnect(self):
@@ -105,5 +105,5 @@ class RabbitMQHandler:
             if queue_type == "req":
                 await self.consume(queue_name, queue_type)
             else:
-                self.log.debug(f"[RMQ]     - response queue ({queue_name}) type={queue_type}")
+                self.log.info(f"[RMQ]     == response queue ({queue_name}) type={queue_type}")
 

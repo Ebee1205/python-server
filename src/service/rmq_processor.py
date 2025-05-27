@@ -4,12 +4,12 @@ from src.utils import rabbitmq_utils
 
 # 메시지 라우터
 async def processor(ctx, msg):
-    processor_name = msg.get("type")
-    handler = RMQ_PROCESSOR_MAP.get(processor_name)
+    msg_type = msg.get("type")
+    handler = RMQ_PROCESSOR_MAP.get(msg_type)
 
     if not handler:
-        ctx.log.warning(f"[RMQ] Unknown processor type: {processor_name}")
-        return {"status": "error", "message": f"Unknown type: {processor_name}"}
+        ctx.log.warning(f"[RMQ] Unknown processor type: {msg_type}")
+        return {"status": "error", "message": f"Unknown type: {msg_type}"}
 
     return await handler(ctx, msg)
 
