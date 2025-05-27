@@ -3,6 +3,7 @@
 
 import orjson
 import aio_pika
+from src.common.common_codes import ResponseStatus
 
 async def rmq_send_response(ctx, queue_name: str, body: dict):
     """
@@ -28,9 +29,22 @@ async def rmq_send_response(ctx, queue_name: str, body: dict):
         await channel.declare_queue(queue_name, durable=True)
         await channel.default_exchange.publish(message, routing_key=queue_name)
 
-        log.debug(f"[RMQ]     - Sent respons '{queue_name}': {message}")
+        log.debug(f"[RMQ]     - Send Response: '{queue_name}': {message}")
 
     except Exception as e:
-        log.error(f"[RMQ] Failed to send response '{queue_name}': {e}")
+        log.error(f"[RMQ] Send Response Failed: '{queue_name}': {e}")
 
-# TODO rmq_send_error(ctx, queue_name, message, error_msg) 로 에러메시지 표준화
+async def rmq_send_error(ctx, queue_name: str, original_msg: dict, status: dict = ResponseStatus.SERVER_ERROR):
+    """
+    에러 메시지를 표준 형식으로 전송합니다.
+    original_msg는 요청 메시지를 그대로 반영해도 되고, 일부만 포함해도 됩니다.
+    """
+    log = ctx.log
+    error_response = {
+        "status": status,
+        "data": None,
+        "original": original_msg
+    }
+
+    log.debug("[RMQ]     >> Send Error: '%s': %s", queue_name, status["code"])
+    await rmq_send_response(ctx, queue_name, error_response)
