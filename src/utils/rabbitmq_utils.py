@@ -1,7 +1,7 @@
 # utils/rabbitmq_utils.py
 # 'rmq_' prefix
 
-import json
+import orjson
 import aio_pika
 
 async def rmq_send_response(ctx, queue_name: str, body: dict):
@@ -22,7 +22,7 @@ async def rmq_send_response(ctx, queue_name: str, body: dict):
             log.warning("[RMQ] Channel is closed. Reconnecting...")
             await rmq_handler.connect()
 
-        message = aio_pika.Message(body=json.dumps(body).encode("utf-8"))
+        message = aio_pika.Message(body=orjson.dumps(body).encode("utf-8"))
 
         channel = rmq_handler.get_channel()
         await channel.declare_queue(queue_name, durable=True)

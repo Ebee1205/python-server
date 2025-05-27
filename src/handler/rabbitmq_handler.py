@@ -4,7 +4,7 @@ import aio_pika
 from aio_pika import ExchangeType
 from aio_pika.abc import AbstractIncomingMessage
 from aio_pika.exceptions import AMQPConnectionError
-import json
+import orjson
 
 from src.service.rmq_processor import processor
 
@@ -78,7 +78,7 @@ class RabbitMQHandler:
         async def _wrapped_callback(message: AbstractIncomingMessage):
             async with message.process():
                 try:
-                    data = json.loads(message.body)
+                    data = orjson.loads(message.body)
                     await processor(self.ctx, data)
                     self.log.debug(f"[RMQ]     - Consume Msg: {data}")
                     

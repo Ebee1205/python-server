@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Request, Body
 from typing import Annotated
-import time, json
+import time, orjson
 
 from src.service.scripts import session_service
 from src.utils import redis_utils
@@ -28,7 +28,7 @@ async def connect_session(
         }
     }
 
-    redis_utils.redis_set(request.app.state.ctx, f"session:{sid}", json.dumps(session), expire_sec=3600)
+    redis_utils.redis_set(request.app.state.ctx, f"session:{sid}", orjson.dumps(session), expire_sec=3600)
 
     return {
         "sid": sid,

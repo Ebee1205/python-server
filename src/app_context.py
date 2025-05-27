@@ -12,7 +12,7 @@ Proprietary and confidential.
 """
 
 # app_context.py
-import json
+import orjson
 
 from pydantic import BaseModel
 from typing import Any
@@ -98,8 +98,9 @@ class AppContext:
         """JSON 파일을 로드하고 AppConfig 모델로 파싱"""
         print("start load config")
 
-        with open(path, "r", encoding="utf-8") as f:
-            raw = json.load(f)
+        with open(path, "rb") as f:
+            raw = orjson.loads(f.read())
+
 
         print("end load config")
         self.cfg = AppConfig(**raw)

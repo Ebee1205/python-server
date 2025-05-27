@@ -1,6 +1,6 @@
 # handler/websocket_handler.py
 from fastapi import WebSocket, WebSocketDisconnect
-import json
+import orjson
 
 class WebSocketHandler:
     def __init__(self, ctx):
@@ -26,7 +26,7 @@ class WebSocketHandler:
             while True:
                 str_msg = await websocket.receive_text()
                 self.log.debug(f"[WS]     >> Received message: {str_msg}")
-                msg = json.loads(str_msg)
+                msg = orjson.loads(str_msg)
 
                 try:
                     response = await processor(self.ctx, websocket, msg)

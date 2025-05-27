@@ -14,7 +14,6 @@ async def processor(ctx, websocket, msg):
 
     return await handler(ctx, websocket, msg)
 
-
 # 핸들러 정의 예시
 async def handle_ping(ctx, websocket, msg):
     return {"status": "ok", "type": "pong", "tid": msg.get("tid")}
@@ -49,7 +48,9 @@ async def process_chat_message(ctx, websocket, message):
         "tid": tid,
         "state": "pending"
     }
+
     stream_result = await redis_utils.redis_stream_add(ctx, stream_key, stream_msg)
+    await rabbitmq_utils.rmq_send_response(ctx, "ankoko-to-algo", stream_msg)
 
     if not stream_result:
         raise RuntimeError("❌ Stream 기록 실패")
@@ -58,7 +59,6 @@ async def process_chat_message(ctx, websocket, message):
     hash_update = await redis_utils.redis_hset(ctx, hash_key, "state", "waiting_ai")
     hash_time = await redis_utils.redis_hset(ctx, hash_key, "last_updated", tid)
 
-    rabbitmq_utils.rmq_send_response(ctx, "ankoko-to-algo", stream_msg)
 
     if not hash_update:
         ctx.log.warning(f"⚠️ 상태 업데이트 실패 - session: {session_id}")
