@@ -5,8 +5,8 @@ from src.service.scripts import basic_service
 
 # 라우터 등록은 여기서 하고 실제 로직은 service에서 관리
 # http://localhost:8000/docs
-# GET /api/basic/ping
-router = APIRouter(prefix="/api/basic", tags=["Basic"])
+# GET /v1/basic/ping
+router = APIRouter(prefix="/v1/basic", tags=["Basic"])
 
 @router.get("/ping")
 async def ping(request: Request):
@@ -14,4 +14,4 @@ async def ping(request: Request):
     return basic_service.ping(ctx)
 
 
-# POST /api/session/chat
+# POST /v1/session/chat

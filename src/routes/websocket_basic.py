@@ -5,7 +5,7 @@
 from fastapi import APIRouter, WebSocket
 from src.service.ws_processor import processor
 
-router = APIRouter()
+router = APIRouter(prefix="/v1/session", tags=["Session"])
 
 # TODO processor 지정하기
 @router.websocket("/chat")
