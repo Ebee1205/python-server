@@ -7,7 +7,10 @@ import time, orjson
 from src.service.scripts import session_service
 from src.utils import redis_utils
 
-router = APIRouter(prefix="/api/session", tags=["Session"])
+router = APIRouter(prefix="/v1/session", tags=["Session"])
+
+# TODO errCode와 msg 맞춰서 수정하기. 지금은 하드코딩 되어잇음
+# TODO status에 대한 commonCode 있는게 좋긴 할듯
 
 @router.post("/connect")
 async def connect_session(
@@ -15,23 +18,78 @@ async def connect_session(
     userId: Annotated[str, Body(embed=True)],
 ):
     sid = session_service.generate_sid()
-    now = int(time.time() * 1000)
+    tid = int(time.time() * 1000)
 
-    session = {
+    # Redis 키
+    redis_key = f"session:{sid}"
+
+    fields = {
         "sid": sid,
         "userId": userId,
-        "createdAt": now,
-        "lastActiveAt": now,
-        "type": "img",  # 기본 세션 타입. 필요 시 클라이언트에서 받아도 됨
-        "state": {
-            "status": "active"
+        "device": "web",
+        "chatCount": 0,
+        "lastChatId": None, 
+        "lang": None,
+        "modelId": None,
+        "cDate": tid,
+        "uDate": tid,
+        "lastAcc": tid,
+        "status": "session_created",
+        "ttl": 86400
+    }
+
+    await redis_utils.redis_hset_multi(request.app.state.ctx, redis_key, fields)
+
+    response = {
+        "hd": {
+            "type": "system",
+            "tid": tid
+        },
+        "dt": {
+            "sid": sid,
+            "status": "session_created",
+            "code": "S00001",
+            "msg": "Successed"
         }
     }
 
-    redis_utils.redis_set(request.app.state.ctx, f"session:{sid}", orjson.dumps(session), expire_sec=3600)
+    return response
 
-    return {
-        "sid": sid,
-        "createdAt": now,
-        "status": "active"
+
+@router.post("/disconnect")
+async def disconnect_session(
+    request: Request,
+    sid: Annotated[str, Body(embed=True)],
+    userId: Annotated[str, Body(embed=True)]
+):
+    tid = int(time.time() * 1000)
+    
+    # Redis 키
+    redis_key = f"session:{sid}"
+
+    # 상태 업데이트 (평평한 구조 그대로)
+    fields = {
+        "status": "session_ended",
+        "state": "ended",
+        "uDate": tid,
+        "lastAcc": tid
     }
+
+    await redis_utils.redis_hset_multi(request.app.state.ctx, redis_key, fields)
+
+    response = {
+        "hd": {
+            "type": "system",
+            "event": "session_ended",
+            "tid": tid
+        },
+        "dt": {
+            "sid": sid,
+            "userId": userId,
+            "msg": "Session ended by user",
+            "code": "S00002",
+            "status": "success"
+        }
+    }
+
+    return response

@@ -106,7 +106,7 @@ async def redis_expire(ctx, key, ttl):
         return False
 
 
-# 해시 구조의 필드에 값 설정
+# 해시 구조의 필드에 값 설정 / 단일필드
 # - return: True (성공), False (실패)
 async def redis_hset(ctx, key, field, value):
     try:
@@ -118,6 +118,16 @@ async def redis_hset(ctx, key, field, value):
         ctx.log.error(f"[REDIS]    -- HSET error: {key}[{field}], {str(e)}")
         return False
 
+# 해시 구조의 필드에 값 설정 / 다중필드
+async def redis_hset_multi(ctx, key, field_dict: dict):
+    try:
+        client = ctx.redis_handler.client
+        result = await client.hset(key, mapping=field_dict)
+        ctx.log.debug(f"[REDIS]    !! HSET {key} = {field_dict}")
+        return True
+    except RedisError as e:
+        ctx.log.error(f"[REDIS]    -- HSET error: {key}, {str(e)}")
+        return False
 
 # 해시 구조에서 필드의 값 조회
 # - return: 값 또는 None
@@ -130,7 +140,6 @@ async def redis_hget(ctx, key, field):
     except RedisError as e:
         ctx.log.error(f"[REDIS]    -- HGET error: {key}[{field}], {str(e)}")
         return None
-
 
 # Redis Stream에 메시지 추가
 async def redis_stream_add(ctx, stream_key, message: dict):
