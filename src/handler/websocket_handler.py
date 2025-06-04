@@ -25,8 +25,8 @@ class WebSocketHandler:
         try:
             while True:
                 str_msg = await websocket.receive_text()
-                self.log.debug(f"[WS]     >> Received message: {str_msg}")
                 msg = orjson.loads(str_msg)
+                self.log.debug(f"[WS]     >> Received message: {msg}")
 
                 try:
                     response = await processor(self.ctx, websocket, msg)

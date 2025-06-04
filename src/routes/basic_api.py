@@ -12,6 +12,3 @@ router = APIRouter(prefix="/v1/basic", tags=["Basic"])
 async def ping(request: Request):
     ctx = request.app.state.ctx
     return basic_service.ping(ctx)
-
-
-# POST /v1/session/chat

@@ -2,15 +2,15 @@
 
 from fastapi import APIRouter, Request, Body
 from typing import Annotated
-import time, orjson
+import time
 
+import src.common.common_codes as codes
 from src.service.scripts import session_service
 from src.utils import redis_utils
 
 router = APIRouter(prefix="/v1/session", tags=["Session"])
 
 # TODO errCode와 msg 맞춰서 수정하기. 지금은 하드코딩 되어잇음
-# TODO status에 대한 commonCode 있는게 좋긴 할듯
 
 @router.post("/connect")
 async def connect_session(
@@ -31,30 +31,23 @@ async def connect_session(
         # "lastChatId": None, 
         # "lang": None,
         # "modelId": None,
+        "status": codes.AppStatus.SESSION_CREATED,
         "cDate": tid,
         "uDate": tid,
         "lastAcc": tid,
-        "status": "session_created",
         "ttl": 86400
     }
 
     await redis_utils.redis_hset_multi(request.app.state.ctx, redis_key, fields)
 
     response = {
-        "hd": {
-            "type": "system",
-            "tid": tid
-        },
-        "dt": {
-            "sid": sid,
-            "status": "session_created",
-            "code": "S00001",
-            "msg": "Successed"
-        }
+        "tid": tid,
+        "sid": sid,
+        "status": codes.AppStatus.SESSION_CREATED,
+        **codes.ResponseStatus.SUCCESS,
     }
 
     return response
-
 
 @router.post("/disconnect")
 async def disconnect_session(
@@ -69,8 +62,7 @@ async def disconnect_session(
 
     # 상태 업데이트 (평평한 구조 그대로)
     fields = {
-        "status": "session_ended",
-        "state": "ended",
+        "status": codes.AppStatus.SESSION_ENDED,
         "uDate": tid,
         "lastAcc": tid
     }
@@ -78,18 +70,13 @@ async def disconnect_session(
     await redis_utils.redis_hset_multi(request.app.state.ctx, redis_key, fields)
 
     response = {
-        "hd": {
-            "type": "system",
-            "event": "session_ended",
-            "tid": tid
-        },
-        "dt": {
-            "sid": sid,
+        "tid": tid,
+        "sid": sid,
+        "user": {
             "userId": userId,
-            "msg": "Session ended by user",
-            "code": "S00002",
-            "status": "success"
-        }
+        },
+        "status": codes.AppStatus.SESSION_ENDED,
+        **codes.ResponseStatus.SUCCESS
     }
 
     return response
