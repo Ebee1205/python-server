@@ -1,12 +1,9 @@
 # service/ws_processor.py
-
-import time
-
 import src.common.common_codes as codes
 
 from src.utils import redis_utils
 from src.utils import rabbitmq_utils
-from src.service.scripts import session_service
+from src.service.scripts import session_service, id_generator
 
 async def processor(ctx, websocket, msg):
     hd = msg.get("hd")
@@ -23,90 +20,49 @@ async def processor(ctx, websocket, msg):
 async def handle_ping(ctx, websocket, msg):
     return {"status": "ok", "type": "pong", "tid": msg.get("tid")}
 
-# TODO session의 status와 그냥 req/res의 error code, state 구분하기
+# 메인 처리 함수
 async def process_user_chat(ctx, websocket, msg):
-    hd = msg.get("hd")
-    dt = msg.get("dt")
-
-    role = hd.get("role")
-    msg_type = hd.get("type")
-    sid = hd.get("sid")
-    user_id = hd.get("userId")
-    mid = hd.get("msgId")
-    tid = hd.get("tid")
-
-    text = dt.get("msg")
+    """사용자 채팅 메시지 처리"""
     
-    # 방어로직 - vlidation check
-    if role != "user" or msg_type != "chat-user":
-        ctx.log.warning(f"[WS] wrong packet - role={role}, type={msg_type}")
-        return
-    if not sid or not user_id or not text:
-        ctx.log.warning(f"[WS] invalid data: sid={sid}, userId={user_id}, text={text}")
-        return
+    # 1. 메시지 파싱 및 검증
+    chat_msg = session_service.ChatMessage.from_websocket_msg(msg)
+    is_valid, err_msg = session_service.validate_message(chat_msg)
     
-    # 2. Redis Stream에 사용자 메시지 기록
-    stream_key = "chat_stream"
-    stream_msg = {
-        "tid": tid,
-        "sid": sid,
-        "userId": user_id,
-        "text": text,
-        "type": "user",
-        "mid": session_service.generate_mid(),
-        "status": codes.AppStatus.USER_MESSAGE_RECEIVED,
-    }
+    if not is_valid:
+        raise ValueError(f"Invalid message: sid={chat_msg.sid}, reason={err_msg}")
     
-
-    await websocket.send_json({
-        "hd": {
-            "type": "system",
-            "tid": tid
-        },
-        "dt": {
-            "sid": sid,
-            "msgId": session_service.generate_mid(),
-            "status": codes.AppStatus.AI_PROCESSING_STARTED,
-            "message": "AI 응답 생성 중..."
+    try:
+        # 2. Redis Stream에 사용자 메시지 기록
+        if not await session_service.SessionService.add_user_message(ctx, chat_msg):
+            return None
+        
+        # 3. AI 서버에 메시지 전송
+        stream_msg = {
+            "tid": chat_msg.tid,
+            "sid": chat_msg.sid,
+            "userId": chat_msg.user_id,
+            "text": chat_msg.text,
+            "type": "user",
+            "mid": id_generator.generate_mid(),
+            "status": codes.AppStatus.USER_MESSAGE_RECEIVED,
         }
-    })
-
-    stream_result = await redis_utils.redis_stream_add(ctx, stream_key, stream_msg)
-    await rabbitmq_utils.rmq_send_response(ctx, "ankoko-to-algo", stream_msg)
-
-    if not stream_result:
-        ctx.log.error(f"Redis stream 기록 실패: sid={sid}, mid={mid}")
-        return
-
-    # 3. Redis 상태 업데이트
-    hash_key = f"chat:session:{sid}"
-    await redis_utils.redis_hset_multi(ctx, hash_key, {
-        "state": codes.AppStatus.AI_MESSAGE_SENT,
-        "last_updated": tid
-    })
-    await redis_utils.redis_hincrby(ctx, hash_key, "chatCount", 1)
-
-    ctx.log.debug(f"[WS] 사용자 메시지 처리 완료: sid={sid}, mid={mid}")
-
-    return {
-        "mid": mid,
-        "tid": tid,
-        "sid": sid,
-        "userId": user_id,
-        "status": codes.AppStatus.AI_MESSAGE_SENT
-    }
-
-async def process_ai_chat(ctx, websocket, msg):
-    hd = msg.get("hd")
-    dt = msg.get("dt")
-    role = hd['role']
-    
-    return 
+        await rabbitmq_utils.rmq_send_response(ctx, "ankoko-to-algo", stream_msg)
+        
+        # 4. 세션 상태 업데이트 - AI 응답 생성중
+        await session_service.SessionService.update_session_state(
+            ctx, chat_msg.sid, chat_msg.tid, codes.AppStatus.AI_PROCESSING_STARTED
+        )
+        
+        # 5. 성공 응답 반환 - AI 응답 생성중
+        response = session_service.ResponseBuilder.build_response(chat_msg.sid, chat_msg.tid, codes.ResponseStatus.SERVER_ERROR )
+        return response
+        
+    except Exception as e:
+        raise ValueError(f"Processing failed: sid={chat_msg.sid}, error={e}")
 
 # 맵핑 테이블
 MAP = {
     "ping": handle_ping,
-    "chat-user": process_user_chat,
-    "chat-ai": process_ai_chat
+    "chat-user": process_user_chat
 }
 
