@@ -129,6 +129,18 @@ async def redis_hset_multi(ctx, key, field_dict: dict):
         ctx.log.error(f"[REDIS]    -- HSET error: {key}, {str(e)}")
         return False
 
+# 해시 구조에서 특정 필드 값을 증가시키는 함수
+# - return: 증가된 결과 값 (int) 또는 None (에러 시)
+async def redis_hincrby(ctx, key, field, amount=1):
+    try:
+        client = ctx.redis_handler.client
+        result = await client.hincrby(key, field, amount)
+        ctx.log.debug(f"[REDIS]    ++ HINCRBY {key}[{field}] += {amount} → {result}")
+        return result  # 증가된 값 반환
+    except RedisError as e:
+        ctx.log.error(f"[REDIS]    -- HINCRBY error: {key}[{field}] += {amount}, {str(e)}")
+        return None
+
 # 해시 구조에서 필드의 값 조회
 # - return: 값 또는 None
 async def redis_hget(ctx, key, field):
@@ -151,7 +163,6 @@ async def redis_stream_add(ctx, stream_key, message: dict):
     except RedisError as e:
         ctx.log.error(f"[REDIS]    -- XADD error: {stream_key}, {str(e)}")
         return None
-
 
 # Redis Stream에서 메시지 읽기
 async def redis_stream_read(ctx, stream_key, last_id="$", block_ms=0):

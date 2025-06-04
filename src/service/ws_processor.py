@@ -1,80 +1,112 @@
 # service/ws_processor.py
 
 import time
+
+import src.common.common_codes as codes
+
 from src.utils import redis_utils
 from src.utils import rabbitmq_utils
+from src.service.scripts import session_service
 
 async def processor(ctx, websocket, msg):
-    msg_type = msg.get("type")
-    handler = MAP.get(msg_type)
+    hd = msg.get("hd")
+    msg_type = hd['type']
 
+    handler = MAP.get(msg_type)
     if not handler:
         ctx.log.warning(f"[WS] Unknown message type: {msg_type}")
         return {"status": "error", "message": f"Unknown type: {msg_type}"}
 
     return await handler(ctx, websocket, msg)
 
-# 핸들러 정의 예시
+# operation handler defination sample
 async def handle_ping(ctx, websocket, msg):
     return {"status": "ok", "type": "pong", "tid": msg.get("tid")}
 
-async def process_chat_message(ctx, websocket, message):
+# TODO session의 status와 그냥 req/res의 error code, state 구분하기
+async def process_user_chat(ctx, websocket, msg):
+    hd = msg.get("hd")
+    dt = msg.get("dt")
+
+    role = hd.get("role")
+    msg_type = hd.get("type")
+    sid = hd.get("sid")
+    user_id = hd.get("userId")
+    mid = hd.get("msgId")
+    tid = hd.get("tid")
+
+    text = dt.get("msg")
+    
+    # 방어로직 - vlidation check
+    if role != "user" or msg_type != "chat-user":
+        ctx.log.warning(f"[WS] wrong packet - role={role}, type={msg_type}")
+        return
+    if not sid or not user_id or not text:
+        ctx.log.warning(f"[WS] invalid data: sid={sid}, userId={user_id}, text={text}")
+        return
+    
+    # 2. Redis Stream에 사용자 메시지 기록
     stream_key = "chat_stream"
-    session_id = message["session_id"]
-    user_id = message["user_id"]
-    text = message["text"]
-    tid = message.get("tid") or str(int(time.time() * 1000))  # 트랜잭션 ID
-    hash_key = f"chat:session:{session_id}"
-    msg_id = str(int(time.time()))
-
-
-   # AI 생성 중 알림 보내기
-   # TODO 관련 로그 추가
-   # TODO status 이렇게 하나하나 박지말고 통합하고 싶긴한데...
-    await websocket.send_json({
-        "status": "processing",
-        "msg_id": msg_id,
-        "session_id": session_id,
-        "message": "🤖 AI 응답 생성 중..."
-    })
-
-    # 1. Redis Stream 기록
     stream_msg = {
-        "session_id": session_id,
-        "user_id": user_id,
+        "tid": tid,
+        "sid": sid,
+        "userId": user_id,
         "text": text,
         "type": "user",
-        "msg_id": msg_id,
-        "tid": tid,
-        "state": "pending"
+        "mid": session_service.generate_mid(),
+        "status": codes.AppStatus.USER_MESSAGE_RECEIVED,
     }
+    
+
+    await websocket.send_json({
+        "hd": {
+            "type": "system",
+            "tid": tid
+        },
+        "dt": {
+            "sid": sid,
+            "msgId": session_service.generate_mid(),
+            "status": codes.AppStatus.AI_PROCESSING_STARTED,
+            "message": "AI 응답 생성 중..."
+        }
+    })
 
     stream_result = await redis_utils.redis_stream_add(ctx, stream_key, stream_msg)
     await rabbitmq_utils.rmq_send_response(ctx, "ankoko-to-algo", stream_msg)
 
     if not stream_result:
-        raise RuntimeError("❌ Stream 기록 실패")
+        ctx.log.error(f"Redis stream 기록 실패: sid={sid}, mid={mid}")
+        return
 
-    # 2. Redis Hash 상태 업데이트
-    hash_update = await redis_utils.redis_hset(ctx, hash_key, "state", "waiting_ai")
-    hash_time = await redis_utils.redis_hset(ctx, hash_key, "last_updated", tid)
+    # 3. Redis 상태 업데이트
+    hash_key = f"chat:session:{sid}"
+    await redis_utils.redis_hset_multi(ctx, hash_key, {
+        "state": codes.AppStatus.AI_MESSAGE_SENT,
+        "last_updated": tid
+    })
+    await redis_utils.redis_hincrby(ctx, hash_key, "chatCount", 1)
 
-
-    if not hash_update:
-        ctx.log.warning(f"⚠️ 상태 업데이트 실패 - session: {session_id}")
+    ctx.log.debug(f"[WS] 사용자 메시지 처리 완료: sid={sid}, mid={mid}")
 
     return {
-        "status": "S0000",
-        "msg_id": msg_id,
+        "mid": mid,
         "tid": tid,
-        "session_id": session_id,
-        "user_id": user_id,
-        "state": "processed_msg"
+        "sid": sid,
+        "userId": user_id,
+        "status": codes.AppStatus.AI_MESSAGE_SENT
     }
 
+async def process_ai_chat(ctx, websocket, msg):
+    hd = msg.get("hd")
+    dt = msg.get("dt")
+    role = hd['role']
+    
+    return 
 
 # 맵핑 테이블
 MAP = {
     "ping": handle_ping,
-    "chat": process_chat_message
+    "chat-user": process_user_chat,
+    "chat-ai": process_ai_chat
 }
+
