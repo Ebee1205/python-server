@@ -12,7 +12,8 @@ router = APIRouter(prefix="/v1/session", tags=["Session"])
 
 # TODO errCode와 msg 맞춰서 수정하기. 지금은 하드코딩 되어잇음
 
-@router.post("/connect")
+# /v1/session/create
+@router.post("/create")
 async def connect_session(
     request: Request,
     userId: Annotated[str, Body(embed=True)],
@@ -23,10 +24,11 @@ async def connect_session(
     # Redis 키
     redis_key = f"session:{sid}"
 
+    # Redis 해쉬맵에 상태 업데이트
     fields = {
         "sid": sid,
         "userId": userId,
-        "device": "web",
+        "device": "web", # TODO device정보는 클라이언트에서 보내줘야할듯?
         "chatCount": 0,
         # "lastChatId": None, 
         # "lang": None,
@@ -49,7 +51,8 @@ async def connect_session(
 
     return response
 
-@router.post("/disconnect")
+# /v1/session/delete
+@router.post("/delete")
 async def disconnect_session(
     request: Request,
     sid: Annotated[str, Body(embed=True)],
@@ -60,7 +63,7 @@ async def disconnect_session(
     # Redis 키
     redis_key = f"session:{sid}"
 
-    # 상태 업데이트 (평평한 구조 그대로)
+    # Redis 해쉬맵에 상태 업데이트
     fields = {
         "status": codes.AppStatus.SESSION_ENDED,
         "uDate": tid,
@@ -73,7 +76,8 @@ async def disconnect_session(
         "tid": tid,
         "sid": sid,
         "user": {
-            "userId": userId,
+            "userId": userId
+            # 필요한 유저 정보 추가...
         },
         "status": codes.AppStatus.SESSION_ENDED,
         **codes.ResponseStatus.SUCCESS
