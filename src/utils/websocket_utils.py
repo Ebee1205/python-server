@@ -2,7 +2,7 @@
 # 'ws_' prefix
 
 import orjson
-from src.service.scripts.chat_service import ChatMessage
+from src.utils import redis_utils
 
 async def ws_send_response(ctx, sid: str, body: dict) -> bool:
     """
@@ -25,6 +25,17 @@ async def ws_send_response(ctx, sid: str, body: dict) -> bool:
         except Exception as e:
             log.warning(f"[WS]     - Failed to send to sid={sid}: {e}")
             return False
-    else:
-        log.warning(f"[WS]     - No active websocket for sid={sid}")
+    # else:
+    #     log.warning(f"[WS]     - No active websocket for sid={sid}")
+    #     return False
+    
+    # TODO 괜찮은 방법인지는 검증 필요할듯. 약간 strick한 방법처럼 느껴지기도하고...
+    # WebSocket 연결이 없거나 전송 실패 시, Redis에 백업
+    try:
+        backup_key = f"chat:buffer:{sid}"
+        await redis_utils.redis_lpush(ctx, backup_key, orjson.dumps(body))
+        log.info(f"[WS]     !! No WS, backup message to Redis: {backup_key}")
+        return True
+    except Exception as e:
+        log.error(f"[WS]     -- Redis backup failed: sid={sid}, error={e}")
         return False
