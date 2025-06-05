@@ -95,11 +95,11 @@ async def redis_exists(ctx, key):
 # 키에 TTL(만료 시간) 설정
 # - ttl: 초 단위 만료 시간
 # - return: 설정 성공 시 True
-async def redis_expire(ctx, key, ttl):
+async def redis_expire(ctx, key, ttl: int):
     try:
         client = ctx.redis_handler.client
         result = await client.expire(key, ttl)
-        ctx.log.debug(f"[REDIS]    !! EXPIRE {key} = {ttl} > {result}")
+        ctx.log.debug(f"[REDIS]    !! EXPIRE {key} > {ttl}s")
         return result
     except RedisError as e:
         ctx.log.error(f"[REDIS]    -- EXPIRE error: {key}, {str(e)}")

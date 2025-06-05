@@ -37,10 +37,10 @@ async def connect_session(
         "cDate": tid,
         "uDate": tid,
         "lastAcc": tid,
-        "ttl": 86400
     }
 
     await redis_utils.redis_hset_multi(request.app.state.ctx, redis_key, fields)
+    await redis_utils.redis_expire(request.app.state.ctx, redis_key, 86400)
 
     response = {
         "tid": tid,
