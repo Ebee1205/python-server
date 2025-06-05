@@ -11,11 +11,11 @@ async def ws_send_response(ctx, sid: str, body: dict) -> bool:
     :param ctx: AppContext
     :param sid: str
     :param body: 보낼 메시지 (dict)
-    :return: 성공 여부
     """
     log = ctx.log
     ws_handler = ctx.ws_handler
-
+    
+    # 1. WebSocket 전송 시도
     ws = ws_handler.session_map.get(sid)
     if ws:
         try:
@@ -24,18 +24,26 @@ async def ws_send_response(ctx, sid: str, body: dict) -> bool:
             return True
         except Exception as e:
             log.warning(f"[WS]     - Failed to send to sid={sid}: {e}")
-            return False
-    # else:
-    #     log.warning(f"[WS]     - No active websocket for sid={sid}")
-    #     return False
+            # WebSocket 전송 실패 시에도 백업으로 진행
+    else:
+        log.warning(f"[WS]     - No active websocket for sid={sid}")
     
-    # TODO 괜찮은 방법인지는 검증 필요할듯. 약간 strick한 방법처럼 느껴지기도하고...
-    # WebSocket 연결이 없거나 전송 실패 시, Redis에 백업
+    # 2. WebSocket이 없거나 전송 실패 시 Redis 백업
+    return await _backup_message_to_redis(ctx, sid, body)
+
+
+async def _backup_message_to_redis(ctx, sid: str, body: dict) -> bool:
+    """Redis에 메시지 백업"""
     try:
         backup_key = f"chat:buffer:{sid}"
-        await redis_utils.redis_lpush(ctx, backup_key, orjson.dumps(body))
-        log.info(f"[WS]     !! No WS, backup message to Redis: {backup_key}")
+        message_data = orjson.dumps(body)
+        await redis_utils.redis_lpush(ctx, backup_key, message_data)
+        
+        # TTL 설정 (예: 1시간)
+        await redis_utils.redis_expire(ctx, backup_key, 3600)
+        
+        ctx.log.info(f"[WS]     !! Backup message to Redis: {backup_key}")
         return True
     except Exception as e:
-        log.error(f"[WS]     -- Redis backup failed: sid={sid}, error={e}")
+        ctx.log.error(f"[WS]     -- Redis backup failed: sid={sid}, error={e}")
         return False
