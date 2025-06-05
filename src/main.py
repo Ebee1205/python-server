@@ -39,7 +39,7 @@ app.add_middleware(
 )
 print(f"CORS 설정 완료: {cors.allow_origins}")
 
-# TODO websocket_router.py 등으로 분리
+# TODO 라우터... 좀 무식하게 등록하는 중
 app.include_router(basic_ws_router)
 app.include_router(basic_router)
 app.include_router(session_router)
@@ -80,6 +80,14 @@ async def on_shutdown():
         ctx.log.info("     -- Shutting down application")
 
     # TODO app_context.py에 _destroy() 메서드로 추가 고려해보기
+    # 역순으로 종료 (LIFO)
+    if ctx.redis_handler:
+        try:
+            await ctx.redis_handler.disconnect()
+            ctx.log.info("     -- Redis handler closed")
+        except Exception as e:
+            ctx.log.warning(f"     - Redis close failed: {e}")
+    
     if ctx.ws_handler:
         try:
             await ctx.ws_handler.disconnect_all()
@@ -93,13 +101,6 @@ async def on_shutdown():
             ctx.log.info("     -- RabbitMQ handler closed")
         except Exception as e:
             ctx.log.warning(f"     - RabbitMQ close failed: {e}")
-
-    if ctx.redis_handler:
-        try:
-            await ctx.redis_handler.disconnect()
-            ctx.log.info("     -- Redis handler closed")
-        except Exception as e:
-            ctx.log.warning(f"     - Redis close failed: {e}")
             
     # if ctx.db_handler:
     #     try:

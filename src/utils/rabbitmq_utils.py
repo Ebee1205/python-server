@@ -16,7 +16,7 @@ async def rmq_send_response(ctx, queue_name: str, body: dict):
     """
     log = ctx.log
     rmq_handler = ctx.rmq_handler
-    print(body)
+    
     try:
         # 채널 보장
         if not rmq_handler.channel or rmq_handler.channel.is_closed:
