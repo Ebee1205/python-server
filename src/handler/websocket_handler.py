@@ -7,11 +7,13 @@ class WebSocketHandler:
         self.ctx = ctx
         self.log = ctx.log
         self.active_connections: list[WebSocket] = []
+        self.session_map: dict[str, WebSocket] = {}
 
     async def connect(self, websocket: WebSocket, id: str = None):
         await websocket.accept()
         self.active_connections.append(websocket)
         if id:
+            self.session_map[id] = websocket
             self.log.info(f"[WS]     - Connected: ID={id}, Client={websocket.client}")
         else:
             self.log.info(f"[WS]     - Connected: Client={websocket.client}")
@@ -31,14 +33,14 @@ class WebSocketHandler:
                 try:
                     response = await processor(self.ctx, websocket, msg)
                 except Exception as e:
-                    self.log.error(f"[WS]     - Router error: {str(e)}")
+                    self.log.error(f"[WS]     - Handler error: {str(e)}")
                     response = {
                         "status": "error",
                         "message": str(e)
                     }
 
                 await websocket.send_json(response)
-                self.log.debug(f"[WS]     << Sent response: {response}")
+                self.log.debug(f"[WS]     << Send response: {response}")
 
         except WebSocketDisconnect:
             self.disconnect(websocket)

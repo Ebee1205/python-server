@@ -16,23 +16,23 @@ async def rmq_send_response(ctx, queue_name: str, body: dict):
     """
     log = ctx.log
     rmq_handler = ctx.rmq_handler
-
+    print(body)
     try:
         # 채널 보장
         if not rmq_handler.channel or rmq_handler.channel.is_closed:
-            log.warning("[RMQ] Channel is closed. Reconnecting...")
+            log.warning("[RMQ]     Channel is closed. Reconnecting...")
             await rmq_handler.connect()
 
-        message = aio_pika.Message(body=orjson.dumps(body).encode("utf-8"))
+        message = aio_pika.Message(body=orjson.dumps(body))
 
         channel = rmq_handler.get_channel()
         await channel.declare_queue(queue_name, durable=True)
         await channel.default_exchange.publish(message, routing_key=queue_name)
 
-        log.debug(f"[RMQ]     - Send Response: '{queue_name}': {message}")
+        log.info(f"[RMQ]     >> Sent message to queue '{queue_name}': {body}")
 
     except Exception as e:
-        log.error(f"[RMQ] Send Response Failed: '{queue_name}': {e}")
+        log.error(f"[RMQ]     - Send Response Failed: '{queue_name}': {e}")
 
 async def rmq_send_error(ctx, queue_name: str, original_msg: dict, status: dict = ResponseStatus.SERVER_ERROR):
     """
@@ -46,5 +46,5 @@ async def rmq_send_error(ctx, queue_name: str, original_msg: dict, status: dict 
         "original": original_msg
     }
 
-    log.debug("[RMQ]     >> Send Error: '%s': %s", queue_name, status["code"])
+    log.info("[RMQ]     >> Send Error: '%s': %s", queue_name, status["code"])
     await rmq_send_response(ctx, queue_name, error_response)

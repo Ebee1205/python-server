@@ -135,11 +135,23 @@ async def redis_hincrby(ctx, key, field, amount=1):
     try:
         client = ctx.redis_handler.client
         result = await client.hincrby(key, field, amount)
-        ctx.log.debug(f"[REDIS]    ++ HINCRBY {key}[{field}] += {amount} → {result}")
+        ctx.log.debug(f"[REDIS]    ++ HINCRBY {key}[{field}] += {amount} > {result}")
         return result  # 증가된 값 반환
     except RedisError as e:
         ctx.log.error(f"[REDIS]    -- HINCRBY error: {key}[{field}] += {amount}, {str(e)}")
         return None
+
+# 해시 구조에서 필드 존재 여부 확인
+# - return: True / False
+async def redis_hexists(ctx, key, field):
+    try:
+        client = ctx.redis_handler.client
+        exists = await client.hexists(key, field)
+        ctx.log.debug(f"[REDIS]    == HEXISTS {key}[{field}] > {exists}")
+        return exists
+    except RedisError as e:
+        ctx.log.error(f"[REDIS]    -- HEXISTS error: {key}[{field}], {str(e)}")
+        return False
 
 # 해시 구조에서 필드의 값 조회
 # - return: 값 또는 None

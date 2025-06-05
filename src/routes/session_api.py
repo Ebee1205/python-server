@@ -5,7 +5,7 @@ from typing import Annotated
 import time
 
 import src.common.common_codes as codes
-from src.service.scripts import session_service
+from src.service.scripts import chat_service
 from src.utils import redis_utils
 
 router = APIRouter(prefix="/v1/session", tags=["Session"])
@@ -18,7 +18,7 @@ async def connect_session(
     request: Request,
     userId: Annotated[str, Body(embed=True)],
 ):
-    sid = session_service.generate_sid()
+    sid = chat_service.generate_sid()
     tid = int(time.time() * 1000)
 
     # Redis 키
