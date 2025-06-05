@@ -103,7 +103,7 @@ class RabbitMQHandler:
 
             # req_que만 consume, res_que는 send 전용
             if queue_type == "req":
-                await self.consume(queue_name, queue_type)
+                await self.consume(queue_name, processor)
             else:
                 self.log.info(f"[RMQ]     == response queue ({queue_name}) type={queue_type}")
 

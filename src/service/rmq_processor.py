@@ -7,7 +7,12 @@ from src.service.scripts import id_generator, chat_service
 
 # 메시지 라우터
 async def processor(ctx, msg):
-    msg_type = msg.get("type")
+    hd = msg.get("hd")
+    msg_type = hd.get('type')
+    tid = hd.get("tid")
+    sid = hd.get("sid")
+    mid = hd.get("mid")
+    
     handler = RMQ_PROCESSOR_MAP.get(msg_type)
 
     if not handler:
@@ -43,10 +48,10 @@ async def process_ai_chat(ctx, msg):
             "status": codes.AppStatus.AI_MESSAGE_PROCESSED,
         }
 
-        # 3. 세션 상태 업데이트 - AI 응답 생성중
+        # 3. 세션 상태 업데이트 - AI 응답 전송
         await chat_service.SessionService.redis_update_session_state(ctx, stream_msg, codes.AppStatus.AI_MESSAGE_SENT)
         
-        # 4. 성공 응답 반환 - AI 응답 생성중
+        # 4. 성공 응답 반환 - AI 응답 전송
         response = chat_service.ResponseBuilder.build_response(req_msg.sid, req_msg.tid, codes.AppStatus.AI_MESSAGE_SENT )
         ws = ctx.ws_handler.session_map.get(req_msg.sid)
         if ws:
