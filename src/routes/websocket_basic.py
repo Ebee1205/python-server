@@ -7,7 +7,6 @@ from src.service.ws_processor import processor
 
 router = APIRouter(prefix="/v1/session", tags=["Session"])
 
-# TODO processor 지정하기
 @router.websocket("/chat")
 async def websocket_chat(websocket: WebSocket):
     ctx = websocket.app.state.ctx
@@ -21,27 +20,3 @@ async def websocket_chat(websocket: WebSocket):
     # sid 전달하여 로그용 식별자 사용
     await ctx.ws_handler.connect(websocket, id=sid)
     await ctx.ws_handler.receive_and_respond(websocket, processor=processor)
-
-# TODO
-# msg 처리흐름: 웹소켓으로 수신, redis Stream에 기록, redis Hash에 응답 상태 기록, rabbitmq 큐에 메시지 전송
-# msg 수신흐름: AI서버가 rabbitmq에 응답 전송, redis Stream에 기록, redis Hash에 응답상태 기록, 웹소켓으로 전송
-# 구현 우선순위: 웹소켓, redis stream, rabbitmq, 상태관리는 마지막에 추가
-
-
-# 1차적인 msg processor 구조는 
-
-# 1. message 수신
-# 2. set_redis_stream(session, user, msg)
-# 3. set_state_getmeg(asfd)
-# 4. send_msg(rmq, msg)
-
-# 5. res = get_msq(rmq)
-# 6. set_redis_stream(session, ai, res)
-# 7. set_state_sentmsg(res)
-# 8. return res
-
-# TODO 그럼만약에 sendres로 웹소켓으로 response 보낼때 유실이 일어나면? redis에 기록된 내용 다시 가져오려면?
-# gpt 답변 참조
-
-# processor를 api로 가져와서 .run() 으로 set_session msg_process 등등 
-# 파사드패턴?으로 자동 play시키면 flow ui구현가능할듯
