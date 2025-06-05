@@ -99,25 +99,12 @@ class SessionService:
         sid = message.sid if isinstance(message, ChatMessage) else message.get("sid")
         hash_key = f"chat:session:{sid}"
 
-        # 메시지 dict으로 변환
-        message_dict = message.__dict__ if isinstance(message, ChatMessage) else message
-        filtered = {k: v for k, v in message_dict.items() if k != "msg"}
-
         # 시스템 상태값 추가
-        filtered.update({
+        await redis_utils.redis_hset_multi(ctx, hash_key, {
             "status": status,
             "uDate": now,
         })
-
-        # 최초 생성 시 cDate 추가
-        exists = await redis_utils.redis_hexists(ctx, hash_key, "cDate")
-        if not exists:
-            filtered["cDate"] = now
-        
-        await redis_utils.redis_hset_multi(ctx, hash_key, filtered)
         return await redis_utils.redis_hincrby(ctx, hash_key, "chatCount", 1)
-
-    
 
 class ResponseBuilder:
     """응답 메시지 생성 클래스"""

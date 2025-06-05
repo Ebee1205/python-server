@@ -5,24 +5,24 @@ from typing import Annotated
 import time
 
 import src.common.common_codes as codes
-from src.service.scripts import chat_service
+from src.service.scripts import id_generator
 from src.utils import redis_utils
 
 router = APIRouter(prefix="/v1/session", tags=["Session"])
 
 # TODO errCode와 msg 맞춰서 수정하기. 지금은 하드코딩 되어잇음
 
-# /v1/session/create
-@router.post("/create")
+# /v1/session/connect
+@router.post("/connect")
 async def connect_session(
     request: Request,
     userId: Annotated[str, Body(embed=True)],
 ):
-    sid = chat_service.generate_sid()
+    sid = id_generator.generate_sid()
     tid = int(time.time() * 1000)
 
     # Redis 키
-    redis_key = f"session:{sid}"
+    redis_key = f"chat:session:{sid}"
 
     # Redis 해쉬맵에 상태 업데이트
     fields = {
@@ -51,8 +51,8 @@ async def connect_session(
 
     return response
 
-# /v1/session/delete
-@router.post("/delete")
+# /v1/session/disconnect
+@router.post("/disconnect")
 async def disconnect_session(
     request: Request,
     sid: Annotated[str, Body(embed=True)],
@@ -61,13 +61,13 @@ async def disconnect_session(
     tid = int(time.time() * 1000)
     
     # Redis 키
-    redis_key = f"session:{sid}"
+    redis_key = f"chat:session:{sid}"
 
     # Redis 해쉬맵에 상태 업데이트
     fields = {
-        "status": codes.AppStatus.SESSION_ENDED,
         "uDate": tid,
-        "lastAcc": tid
+        "lastAcc": tid,
+        "status": codes.AppStatus.SESSION_ENDED,
     }
 
     await redis_utils.redis_hset_multi(request.app.state.ctx, redis_key, fields)
