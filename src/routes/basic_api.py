@@ -1,6 +1,8 @@
 # routes/basic_api.py
 
 from fastapi import APIRouter, Request
+
+import src.common.common_codes as codes
 from src.service.scripts import basic_service
 from src.utils import rabbitmq_utils
 
@@ -21,4 +23,9 @@ async def publish_to_rmq(request: Request):
 
     queue = "ankoko-from-algo"
     await rabbitmq_utils.rmq_send_response(ctx, queue, data)
-    return {"status": "ok"}
+    return {
+                "queue": queue,
+                "codes": {
+                    **codes.ResponseStatus.SUCCESS,
+                }
+            }
