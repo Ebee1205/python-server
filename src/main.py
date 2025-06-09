@@ -1,109 +1,185 @@
 # main.py
 
-from fastapi import FastAPI, WebSocket
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import traceback
+import asyncio
+
 from src.app_context import AppContext
 from src.routes.websocket_basic import router as basic_ws_router
 from src.routes.basic_api import router as basic_router
 from src.routes.session_api import router as session_router
 
 
-app = FastAPI()
-ctx = AppContext()
-app.state.ctx = ctx
-
-# CORS는 앱 생성 직후에만 등록 가능. 순서를 지킬 것
-ctx.load_config("src/service/conf/py-server-local.cfg.json")
-
-# TODO CORS 설정 위치 여기가 최선인가,,,
-cors = ctx.cfg.http_config
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors.allow_origins,
-    allow_credentials=cors.allow_credentials,
-    allow_methods=cors.allow_methods,
-    allow_headers=cors.allow_headers,
-)
-print(f"CORS 설정 완료: {cors.allow_origins}")
-
-# TODO 라우터... 좀 무식하게 등록하는 중
-app.include_router(basic_ws_router)
-app.include_router(basic_router)
-app.include_router(session_router)
-
-# 이제야 on_startup 가능
-@app.on_event("startup")
-async def on_startup():
-    try:
-        # TODO 눈에 보여서 이렇게 작성하긴 했는데 보고 config() 혹은 init()으로 묶어서 작성하는것도 고려해보기
-        print("     - Initializing application...")
-        ctx = app.state.ctx
-
-        # logger 초기화
-        ctx._init_logger()
-        test_logging(ctx.log)
+class AppFactory:
+    """애플리케이션 팩토리 클래스"""
+    
+    @staticmethod
+    def create_app() -> FastAPI:
+        """FastAPI 애플리케이션 생성 및 설정"""
         
-        # 초기화
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            ctx = None
+            try:
+                ctx = app.state.ctx
+                await AppFactory._startup(app)
+                yield
+            except asyncio.CancelledError:
+                if ctx and hasattr(ctx, 'log'):
+                    ctx.log.warning("     - Application interrupted by user (CancelledError)")
+                else:
+                    print("     Application interrupted by user (CancelledError)")
+                raise  # shutdown 호출을 위해 재전파 필요
+            except Exception as e:
+                if ctx and hasattr(ctx, 'log'):
+                    ctx.log.error(f"     - Unexpected error during startup: {e}")
+                else:
+                    print(f"     Unexpected error during startup: {e}")
+                traceback.print_exc()
+                raise
+            finally:
+                if ctx and hasattr(ctx, 'log'):
+                    ctx.log.info("     - Starting graceful shutdown")
+                else:
+                    print("     Starting graceful shutdown")
+                await AppFactory._shutdown(app)
+
+        
+        app = FastAPI(lifespan=lifespan)
+        
+        # 컨텍스트 초기화
+        ctx = AppContext()
+        app.state.ctx = ctx
+        
+        # 설정 로드
+        ctx.load_config("src/service/conf/py-server-local.cfg.json")
+        
+        # CORS 설정
+        AppFactory._setup_cors(app, ctx)
+        
+        # 라우터 등록
+        AppFactory._register_routes(app)
+        
+        return app
+    
+    @staticmethod
+    def _setup_cors(app: FastAPI, ctx: AppContext) -> None:
+        """CORS 미들웨어 설정"""
+        cors_config = ctx.cfg.http_config
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_config.allow_origins,
+            allow_credentials=cors_config.allow_credentials,
+            allow_methods=cors_config.allow_methods,
+            allow_headers=cors_config.allow_headers,
+        )
+        print(f"CORS 설정 완료: {cors_config.allow_origins}")
+    
+    @staticmethod
+    def _register_routes(app: FastAPI) -> None:
+        """라우터 등록"""
+        routers = [
+            basic_ws_router,
+            basic_router,
+            session_router,
+        ]
+        
+        for router in routers:
+            app.include_router(router)
+    
+    @staticmethod
+    async def _startup(app: FastAPI) -> None:
+        """애플리케이션 시작 시 초기화"""
+        try:
+            print("     - Initializing application...")
+            ctx = app.state.ctx
+
+            # 핸들러 초기화 후 연결 설정
+            await AppFactory._initialize_handlers(ctx)
+            await AppFactory._setup_connections(ctx)
+            
+            ctx.log.info("     == Initialization complete")
+            
+        except Exception as e:
+            if hasattr(app.state, 'ctx') and hasattr(app.state.ctx, 'log'):
+                app.state.ctx.log.error(f"     -- Initialization error: {str(e)}")
+            else:
+                print(f"     -- Initialization error: {str(e)}")
+            traceback.print_exc()
+            raise
+    
+    @staticmethod
+    async def _initialize_handlers(ctx: AppContext) -> None:
+        """핸들러 초기화"""
+        ctx._init_logger()
+        AppFactory._test_logging(ctx.log)
+        
         ctx._init_websocket()
         ctx._init_redis()
         ctx._init_rmq()
-
+    
+    @staticmethod
+    async def _setup_connections(ctx: AppContext) -> None:
+        """외부 서비스 연결 설정"""
+        # RabbitMQ 연결
         await ctx.rmq_handler.connect()
         await ctx.rmq_handler.consume_multi()
+        
+        # Redis 연결
         await ctx.redis_handler.connect()
 
-        ctx.log.info("     == Initialization complete")
+    @staticmethod
+    async def _shutdown(app: FastAPI) -> None:
+        """애플리케이션 종료 시 정리"""
+        ctx = app.state.ctx
 
-    except Exception as e:
-        ctx.log.error(f"     -- Initialization error: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise
+        if hasattr(ctx, 'log') and ctx.log:
+            ctx.log.info("     -- Shutting down application")
 
-@app.on_event("shutdown")
-async def on_shutdown():
-    ctx = app.state.ctx
-    if ctx.log:
-        ctx.log.info("     -- Shutting down application")
+        # Redis 종료
+        if ctx.redis_handler:
+            try:
+                await ctx.redis_handler.disconnect()
+                ctx.log.info("     -- Redis handler closed")
+            except Exception as e:
+                ctx.log.warning(f"     - Redis close failed: {e}")
 
-    # TODO app_context.py에 _destroy() 메서드로 추가 고려해보기
-    # 역순으로 종료 (LIFO)
-    if ctx.redis_handler:
-        try:
-            await ctx.redis_handler.disconnect()
-            ctx.log.info("     -- Redis handler closed")
-        except Exception as e:
-            ctx.log.warning(f"     - Redis close failed: {e}")
+        # WebSocket 종료
+        if ctx.ws_handler:
+            try:
+                await ctx.ws_handler.disconnect_all()
+                ctx.log.info("     -- WebSocket handler closed")
+            except Exception as e:
+                ctx.log.warning(f"     - WebSocket close failed: {e}")
+
+        # RabbitMQ 종료
+        if ctx.rmq_handler:
+            try:
+                await ctx.rmq_handler.disconnect()
+                ctx.log.info("     -- RabbitMQ handler closed")
+            except Exception as e:
+                ctx.log.warning(f"     - RabbitMQ close failed: {e}")
     
-    if ctx.ws_handler:
-        try:
-            await ctx.ws_handler.disconnect_all()
-            ctx.log.info("     -- WebSocket handler closed")
-        except Exception as e:
-            ctx.log.warning(f"     - WebSocket close failed: {e}")
+    @staticmethod
+    def _test_logging(logger) -> None:
+        """로깅 테스트"""
+        logger.info("-- FILE LOG TEST START --")
+        logger.debug("   -test debug level")
+        logger.info("    -test info level")
+        logger.warning(" -test warn level")
+        logger.error("   -test error level")
+        logger.info("-- FILE LOG TEST END --")
 
-    if ctx.rmq_handler:
-        try:
-            await ctx.rmq_handler.disconnect()
-            ctx.log.info("     -- RabbitMQ handler closed")
-        except Exception as e:
-            ctx.log.warning(f"     - RabbitMQ close failed: {e}")
 
-    # if ctx.db_handler:
-    #     try:
-    #         ctx.db_handler.close()
-    #         ctx.log.info("DB handler closed")
-    #     except Exception as e:
-    #         ctx.log.warning(f"DB close failed: {e}")
+# 애플리케이션 인스턴스 생성
+app = AppFactory.create_app()
 
-def test_logging(logger):
-    logger.info("-- FILE LOG TEST START --")
-    logger.debug("   -test debug level")
-    logger.info("    -test info level")
-    logger.warning(" -test warn level")
-    logger.error("   -test error level")
-    logger.info("-- FILE LOG TEST END --")
-
-    
-# 실행코드
-# uvicorn src.main:app --reload --port 8000
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)
