@@ -1,16 +1,3 @@
-"""
-Project: Ankoko-web-server
-Author: wavicle (GitHub: @Eunbee1205)
-Email: spiverain02@gmail.com
-License: All rights reserved. Commercial use requires a license.
-@file app_context.py
-
-© 2025 wavicle. All rights reserved.
-
-Unauthorized copying of this file, via any medium, is strictly prohibited.
-Proprietary and confidential.
-"""
-
 # app_context.py
 import orjson
 
@@ -22,6 +9,7 @@ import py_logger
 from src.handler.websocket_handler import WebSocketHandler
 from src.handler.redis_handler import RedisHandler
 from src.handler.rabbitmq_handler import RabbitMQHandler
+from src.handler.mqtt_handler import MQTTHandler
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -60,6 +48,12 @@ class RMQConfig(BaseModel):
     heartbeat: int
     reconnect_delay: int
 
+class MQTTConfig(BaseModel):
+    host: str
+    port: int
+    keepalive: int
+    topics: list[str]
+
 class HTTPConfig(BaseModel):
     allow_origins: list[str]
     allow_methods: list[str]
@@ -82,6 +76,7 @@ class AppConfig(BaseModel):
     mysql: MySQLConfig
     redis: RedisConfig
     rmq: RMQConfig
+    mqtt: MQTTConfig
 
 class AppContext:
     def __init__(self):
@@ -93,6 +88,7 @@ class AppContext:
         self.db_handler = None
         self.redis_handler = None
         self.rmq_handler = None
+        self.mqtt_handler = None
 
     def load_config(self, path: str) -> AppConfig:
         """JSON 파일을 로드하고 AppConfig 모델로 파싱"""
@@ -135,6 +131,13 @@ class AppContext:
         self.rmq_handler = RabbitMQHandler(self)
 
         self.log.debug("end init RabbitMQ")
+
+    def _init_mqtt(self):
+        self.log.debug("start init MQTT")
+
+        self.mqtt_handler = MQTTHandler(self)
+
+        self.log.debug("end init MQTT")
 
     # TODO def _init_mysql(self):
     # TODO _destroy() 메서드 추가

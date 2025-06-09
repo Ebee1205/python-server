@@ -1,16 +1,3 @@
-"""
-Project: Ankoko-web-server
-Author: wavicle (GitHub: @Eunbee1205)
-Email: spiverain02@gmail.com
-License: All rights reserved. Commercial use requires a license.
-@file main.py
-
-© 2025 wavicle. All rights reserved.
-
-Unauthorized copying of this file, via any medium, is strictly prohibited.
-Proprietary and confidential.
-"""
-
 # main.py
 
 from fastapi import FastAPI, WebSocket
@@ -60,10 +47,16 @@ async def on_startup():
         ctx._init_websocket()
         ctx._init_redis()
         ctx._init_rmq()
+        ctx._init_mqtt()
 
         await ctx.rmq_handler.connect()
         await ctx.rmq_handler.consume_multi()
         await ctx.redis_handler.connect()
+
+        # mqtt connect 및 구독
+        ctx.mqtt_handler.connect()
+        for topic in ctx.cfg.mqtt.topics:
+            ctx.mqtt_handler.subscribe(topic)
 
         ctx.log.info("     == Initialization complete")
 
@@ -101,6 +94,13 @@ async def on_shutdown():
             ctx.log.info("     -- RabbitMQ handler closed")
         except Exception as e:
             ctx.log.warning(f"     - RabbitMQ close failed: {e}")
+
+    if ctx.mqtt_handler:
+        try:
+            await ctx.mqtt_handler.disconnect()
+            ctx.log.info("     -- MQTT handler closed")
+        except Exception as e:
+            ctx.log.warning(f"     - MQTT close failed: {e}")
             
     # if ctx.db_handler:
     #     try:

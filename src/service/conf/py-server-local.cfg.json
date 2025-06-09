@@ -54,6 +54,16 @@
       "routing_key": "my.routing.key",
       "heartbeat": 60,
       "reconnect_delay": 5
-    }
+    },
+
+    "mqtt": {
+      "host": "localhost",
+      "port": 1883,
+      "keepalive": 60,
+      "topics": [
+        "ankoko/input",
+        "ankoko/output"
+      ]
+    }    
 }
   
