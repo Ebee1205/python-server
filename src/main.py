@@ -47,16 +47,10 @@ async def on_startup():
         ctx._init_websocket()
         ctx._init_redis()
         ctx._init_rmq()
-        ctx._init_mqtt()
 
         await ctx.rmq_handler.connect()
         await ctx.rmq_handler.consume_multi()
         await ctx.redis_handler.connect()
-
-        # mqtt connect 및 구독
-        ctx.mqtt_handler.connect()
-        for topic in ctx.cfg.mqtt.topics:
-            ctx.mqtt_handler.subscribe(topic)
 
         ctx.log.info("     == Initialization complete")
 
@@ -95,13 +89,6 @@ async def on_shutdown():
         except Exception as e:
             ctx.log.warning(f"     - RabbitMQ close failed: {e}")
 
-    if ctx.mqtt_handler:
-        try:
-            await ctx.mqtt_handler.disconnect()
-            ctx.log.info("     -- MQTT handler closed")
-        except Exception as e:
-            ctx.log.warning(f"     - MQTT close failed: {e}")
-            
     # if ctx.db_handler:
     #     try:
     #         ctx.db_handler.close()
