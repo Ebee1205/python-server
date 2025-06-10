@@ -100,61 +100,61 @@ class AppContext:
 
     def load_config(self, path: str) -> AppConfig:
         """JSON 파일을 로드하고 AppConfig 모델로 파싱"""
-        print("start load cfg")
+        print("+ start load cfg")
 
         with open(path, "rb") as f:
             raw = orjson.loads(f.read())
 
-        print("end load cfg")
+        print("- end load cfg")
         self.cfg = AppConfig(**raw)
 
     def _init_logger(self):
-        print("start init logger")
+        print("+ start init logger")
 
         log_level = self.cfg.logger.level 
         log_path = self.cfg.logger.path
         log_max_files = self.cfg.logger.max_files
         self.log = py_logger.setup_logger(log_level, log_path, log_max_files)
 
-        self.log.debug("end init logger")
+        self.log.debug("- end init logger")
         
     def _init_system_manager(self):
-        self.log.debug("start init system manager")
+        self.log.debug("+ start init system manager")
 
         if self.cfg.enable_monitoring:
             interval = self.cfg.monitoring_interval
             self.system_monitor = SystemMonitor(self.log, interval)
             self.system_monitor.start()
 
-        self.log.debug("end init system manager")
+        self.log.debug("- end init system manager")
 
     def _init_websocket(self):
-        self.log.debug("start init websocket")
+        self.log.debug("+ start init websocket")
 
         self.ws_handler = WebSocketHandler(self)
 
-        self.log.debug("end init websocket")
+        self.log.debug("- end init websocket")
 
     def _init_redis(self):
-        self.log.debug("start init Redis")
+        self.log.debug("+ start init Redis")
 
         self.redis_handler = RedisHandler(self)
 
-        self.log.debug("end init Redis")
+        self.log.debug("- end init Redis")
 
     def _init_rmq(self):
-        self.log.debug("start init RabbitMQ")
+        self.log.debug("+ start init RabbitMQ")
 
         self.rmq_handler = RabbitMQHandler(self)
 
-        self.log.debug("end init RabbitMQ")
+        self.log.debug("- end init RabbitMQ")
 
     def _init_mqtt(self):
-        self.log.debug("start init MQTT")
+        self.log.debug("+ start init MQTT")
 
         self.mqtt_handler = MQTTHandler(self)
 
-        self.log.debug("end init MQTT")
+        self.log.debug("- end init MQTT")
 
     # TODO def _init_mysql(self):
     # TODO _destroy() 메서드 추가

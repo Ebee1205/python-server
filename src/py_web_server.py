@@ -142,7 +142,8 @@ class AppFactory:
         
         # Redis 연결
         await ctx.redis_handler.connect()
-        
+                
+        # TODO mqtt는 비동기로 안해도 괜찮은건가,,,
         # MQTT 연결 및 구독
         ctx.mqtt_handler.connect()
         for topic in ctx.cfg.mqtt.topics:
@@ -199,13 +200,12 @@ class AppFactory:
     @staticmethod
     def _test_logging(logger) -> None:
         """로깅 테스트"""
-        logger.info("-- FILE LOG TEST START --")
+        logger.info("===FILE LOG TEST START===")
         logger.debug("   -test debug level")
-        logger.info("    -test info level")
-        logger.warning(" -test warn level")
+        logger.info("   -test info level")
+        logger.warning("   -test warn level")
         logger.error("   -test error level")
-        logger.info("-- FILE LOG TEST END --")
-
+        logger.info("===FILE LOG TEST END===")
 
 # 애플리케이션 인스턴스 생성
 app = AppFactory.create_app()

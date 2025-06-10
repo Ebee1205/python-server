@@ -201,7 +201,5 @@ if __name__ == "__main__":
         print(f"     -- Fatal error: {str(e)}")
         sys.exit(1)
 
-
-
 # 실행코드
 # python src/py_server_mw.py

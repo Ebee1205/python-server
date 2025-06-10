@@ -78,7 +78,7 @@ def setup_logger(log_level, log_path, log_max_files):
     logger.setLevel(log_level)
 
     formatter = logging.Formatter(
-        '%(asctime)s.%(msecs)03d %(levelname)s %(message)s', 
+        '%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s',
         datefmt='%m/%d %H:%M:%S'
     )
 
@@ -113,11 +113,3 @@ def setup_logger(log_level, log_path, log_max_files):
     logger.propagate = False
 
     return logger
-
-def test_logging(logger):
-    logger.info("-- FILE LOG TEST START --")
-    logger.debug("   -test debug level")
-    logger.info("    -test info level")
-    logger.warning(" -test warn level")
-    logger.error("   -test error level")
-    logger.info("-- FILE LOG TEST END --")
