@@ -100,7 +100,8 @@ class AppFactory:
             print("     - Initializing application...")
             ctx = app.state.ctx
 
-            # 핸들러 초기화 후 연결 설정
+            # 초기화 후 연결 설정
+            await AppFactory._initialize_managers(ctx)
             await AppFactory._initialize_handlers(ctx)
             await AppFactory._setup_connections(ctx)
             
@@ -115,11 +116,18 @@ class AppFactory:
             raise
     
     @staticmethod
-    async def _initialize_handlers(ctx: AppContext) -> None:
-        """핸들러 초기화"""
+    async def _initialize_managers(ctx: AppContext) -> None:
+        """매니저 초기화"""
+        print("     - Initializing handlers...")   
         ctx._init_logger()
         AppFactory._test_logging(ctx.log)
         
+        ctx._init_system_manager()
+        
+    @staticmethod
+    async def _initialize_handlers(ctx: AppContext) -> None:
+        """핸들러 초기화"""    
+        ctx.log.info("     - Initializing handlers...")   
         ctx._init_websocket()
         ctx._init_redis()
         ctx._init_rmq()
@@ -180,6 +188,13 @@ class AppFactory:
             except Exception as e:
                 ctx.log.warning(f"     - MQTT close failed: {e}")
 
+        # 모니터링 종료
+        if ctx.system_monitor:
+            try:
+                ctx.system_monitor.stop()
+                ctx.log.info("     -- system monitor stopped")
+            except Exception as e:
+                ctx.log.warning(f"     - system monitor stop failed: {e}")
     
     @staticmethod
     def _test_logging(logger) -> None:

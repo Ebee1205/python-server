@@ -6,6 +6,7 @@ from typing import Any
 from typing import Optional
 
 import py_logger
+from system_monitor import SystemMonitor
 from src.handler.websocket_handler import WebSocketHandler
 from src.handler.redis_handler import RedisHandler
 from src.handler.rabbitmq_handler import RabbitMQHandler
@@ -78,29 +79,35 @@ class AppConfig(BaseModel):
     rmq: RMQConfig
     mqtt: MQTTConfig
 
+    # 시스템 모니터링 관련 기본값 설정
+    enable_monitoring: Optional[bool] = True
+    monitoring_interval: Optional[int] = 10
+
 class AppContext:
     def __init__(self):
-        self.cfg = None
-
+        self.cfg = {}
         self.log = None
         
+        # 핸들러
         self.ws_handler = None
         self.db_handler = None
         self.redis_handler = None
         self.rmq_handler = None
         self.mqtt_handler = None
 
+        # 매니저
+        self.system_monitor = None
+
     def load_config(self, path: str) -> AppConfig:
         """JSON 파일을 로드하고 AppConfig 모델로 파싱"""
-        print("start load config")
+        print("start load cfg")
 
         with open(path, "rb") as f:
             raw = orjson.loads(f.read())
 
-
-        print("end load config")
+        print("end load cfg")
         self.cfg = AppConfig(**raw)
-    
+
     def _init_logger(self):
         print("start init logger")
 
@@ -110,6 +117,16 @@ class AppContext:
         self.log = py_logger.setup_logger(log_level, log_path, log_max_files)
 
         self.log.debug("end init logger")
+        
+    def _init_system_manager(self):
+        self.log.debug("start init system manager")
+
+        if self.cfg.enable_monitoring:
+            interval = self.cfg.monitoring_interval
+            self.system_monitor = SystemMonitor(self.log, interval)
+            self.system_monitor.start()
+
+        self.log.debug("end init system manager")
 
     def _init_websocket(self):
         self.log.debug("start init websocket")

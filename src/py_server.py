@@ -29,8 +29,11 @@ class PythonServer:
             # logger 초기화
             self.ctx._init_logger()
             self.test_logging(self.ctx.log)
+
+            # 매니저 초기화
+            self.ctx._init_system_manager()
             
-            # 각종 핸들러 초기화
+            # 핸들러 초기화
             self.ctx._init_websocket()
             self.ctx._init_redis()
             self.ctx._init_rmq()
@@ -127,11 +130,18 @@ class PythonServer:
 
         if self.ctx.mqtt_handler:
             try:
-                await self.ctx.mqtt_handler.disconnect()
+                self.ctx.mqtt_handler.disconnect()
                 self.ctx.log.info("     -- MQTT handler closed")
             except Exception as e:
                 self.ctx.log.warning(f"     - MQTT close failed: {e}")
         
+        if self.ctx.system_monitor:
+            try:
+                self.ctx.system_monitor.stop()
+                self.ctx.log.info("     -- system monitor stopped")
+            except Exception as e:
+                self.ctx.log.warning(f"     - system monitor stop failed: {e}")
+
         self.ctx.log.info("     -- Server shutdown complete")
 
     def test_logging(self, logger):
