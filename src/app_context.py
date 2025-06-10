@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from typing import Any
 from typing import Optional
 
-import py_logger
-from system_monitor import SystemMonitor
+import src.modules.py_logger as py_logger
+from src.modules.system_monitor import SystemMonitor
 from src.handler.websocket_handler import WebSocketHandler
 from src.handler.redis_handler import RedisHandler
 from src.handler.rabbitmq_handler import RabbitMQHandler
