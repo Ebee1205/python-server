@@ -79,7 +79,7 @@ class AppFactory:
             allow_methods=cors_config.allow_methods,
             allow_headers=cors_config.allow_headers,
         )
-        print(f"CORS 설정 완료: {cors_config.allow_origins}")
+        print(f"CORS configuration complete: {cors_config.allow_origins}")
     
     @staticmethod
     def _register_routes(app: FastAPI) -> None:

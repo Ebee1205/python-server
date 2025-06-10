@@ -178,7 +178,7 @@ class PythonServer:
 
 def handle_signal(signum, frame):
     """시그널 핸들러"""
-    print(f"\n     -- Received signal {signum}")
+    print(f"     -- Received signal {signum}")
     loop = asyncio.get_event_loop()
     if loop.is_running():
         loop.create_task(server.shutdown())
