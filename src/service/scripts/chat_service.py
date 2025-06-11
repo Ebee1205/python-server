@@ -124,7 +124,7 @@ class ResponseBuilder:
             },
             "dt": {
                 "status": status,
-                "message": message,
+                "msg": message,
             },
             "codes": {
                 **codes.ResponseStatus.SUCCESS,

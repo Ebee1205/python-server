@@ -19,7 +19,7 @@ async def processor(ctx, msg):
 
     if not handler:
         ctx.log.warning(f"[RMQ]     - Unknown processor type: {msg_type}")
-        return {"status": "error", "message": f"Unknown type: {msg_type}"}
+        return {"status": "error", "msg": f"Unknown type: {msg_type}"}
 
     return await handler(ctx, msg)
 
@@ -39,7 +39,7 @@ async def process_llm_request(ctx, msg):
             "tid": msg["hd"]["tid"],
             "sid": msg["hd"]["sid"],
             "mid": msg["hd"]["mid"],
-            "type": "llm-response",
+            "type": "chat-system",
             "role": "system",
             "userId": msg["hd"].get("userId")
         },
@@ -79,10 +79,8 @@ async def process_llm_response(ctx, msg):
             "hd": msg["hd"],
             "dt": {
                 "status": codes.AppStatus.AI_MESSAGE_SENT,
-                "message": {
-                    "msg": msg["dt"].get("msg", ""),
-                    "llm_analysis": msg["dt"].get("llm_analysis", {})
-                }
+                "msg": msg["dt"].get("msg", ""),
+                "llm_analysis": msg["dt"].get("llm_analysis", {})
             },
             "codes": {
                 **codes.ResponseStatus.SUCCESS
@@ -110,5 +108,5 @@ async def process_llm_response(ctx, msg):
 # 메시지 라우팅
 RMQ_PROCESSOR_MAP = {
     "chat-user": process_llm_request,   # 또는 적절한 핸들러로 교체
-    "llm-result": process_llm_response
+    "chat-system": process_llm_response
 }
