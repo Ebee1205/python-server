@@ -14,6 +14,7 @@ from src.app_context import AppContext
 from src.routes.websocket_basic import router as basic_ws_router
 from src.routes.basic_api import router as basic_router
 from src.routes.session_api import router as session_router
+from src.routes.pattern_api import router as pattern_router
 
 
 class AppFactory:
@@ -88,6 +89,7 @@ class AppFactory:
             basic_ws_router,
             basic_router,
             session_router,
+            pattern_router
         ]
         
         for router in routers:
