@@ -50,7 +50,20 @@ async def process_user_chat(ctx, websocket, msg):
             "status": codes.AppStatus.USER_MESSAGE_RECEIVED,
         }
 
-        await rabbitmq_utils.rmq_send_response(ctx, "ankoko-to-algo", stream_msg)
+        await rabbitmq_utils.rmq_send_response(ctx, "ankoko-to-algo", {
+            "hd": {
+                "tid": req_msg.tid,
+                "sid": req_msg.sid,
+                "mid": req_msg.mid,
+                "type": chat_service.MessageType.CHAT_USER,
+                "role": chat_service.MessageRole.USER,
+                "userId": req_msg.user_id,
+            },
+            "dt": {
+                "msg": req_msg.msg,
+                "status": codes.AppStatus.USER_MESSAGE_RECEIVED
+            }
+        })
 
         # 4. 세션 상태 업데이트 - AI 응답 생성중
         await chat_service.SessionService.redis_update_session_state(ctx, stream_msg, codes.AppStatus.AI_PROCESSING_STARTED)
