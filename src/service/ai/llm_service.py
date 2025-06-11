@@ -2,9 +2,10 @@
 # AI > LLM 관련은 여기서 처리
 # TODO I/F 다듬어서 여기에 basic 추가
 import re
-
+import random
 from langchain_community.llms import Ollama
 from langchain.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
 llama = Ollama(model="llama3.2")  # 필요 시 한국어 모델로 교체
 
@@ -63,3 +64,76 @@ async def llm_analyze_dialog(ctx, segments: list[dict]) -> dict:
     )
 
     return parsed
+
+
+# ----------- p5.js 템플릿 변환기
+def clean_llm_result(raw: str) -> str:
+    cleaned = raw.strip()
+
+    # Remove Markdown code block (```python ... ```)
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```[a-zA-Z]*\n?", "", cleaned)
+        cleaned = re.sub(r"\n?```$", "", cleaned)
+
+    # Remove list brackets if accidentally wrapped
+    if cleaned.startswith("[") and cleaned.endswith("]"):
+        try:
+            import ast
+            as_list = ast.literal_eval(cleaned)
+            if isinstance(as_list, list) and len(as_list) == 1:
+                return str(as_list[0])
+        except Exception:
+            pass  # fallback to original
+
+    return cleaned
+
+async def llm_translate_pattern(ctx, function_code: str) -> str:
+    """
+    JavaScript pattern draw function 또는 p5.js 코드를 입력받아,
+    patterns 리스트에 들어갈 Python 딕셔너리 포맷 문자열로 변환합니다.
+    """
+    ctx.log.debug("[LLM]     - Start llm_translate_pattern")
+
+    prompt_text = (
+        "You are a code converter that extracts visual rendering pattern definitions "
+        "from JavaScript functions written for p5.js, and formats them as a single Python dictionary entry for a `patterns` list.\n\n"
+        "The input JavaScript code will follow the p5.js structure (e.g., `setup`, `draw`, `createCanvas`, `point`, `noise`, etc).\n\n"
+        "Strictly follow these rules:\n"
+        "1. The output must be a SINGLE Python dictionary only — do NOT wrap it in a list or array.\n"
+        "2. Do NOT include ```python or any markdown-style code block formatting.\n"
+        "3. The `name` should be short and descriptive (e.g., 'circleFade').\n"
+        "4. The `randomParams` field must contain all `p.xxx` values found in the code, using random functions.\n"
+        "5. The `drawColor` is True if the function returns RGB, otherwise False.\n"
+        "6. The `code` must contain the original JavaScript code inside triple quotes (`\"\"\"`). Do not modify it.\n"
+        "7. Absolutely no explanation, comments, or extra wrapping (such as [ ... ] or 'python'). Just return the dictionary.\n\n"
+        f"Convert the following p5.js-based JavaScript code:\n```js\n{function_code}\n```\n"
+    )
+
+
+    prompt = PromptTemplate(input_variables=["input"], template="{input}")
+    runnable_chain = prompt | llama
+
+    start = time.time()
+    try:
+        result = await runnable_chain.ainvoke({"input": prompt_text})
+    except Exception as e:
+        ctx.log.error(f"[LLM]    !! Error during translation: {e}")
+        return f"Translation failed: {e}"
+
+    elapsed = time.time() - start
+    result_str = result.strip()
+    cleaned = clean_llm_result(result_str)
+
+    ctx.log.debug(f"[LLM]    << Raw LLM response (cleaned):\n{cleaned}")
+
+    # 토큰/성능 로그
+    input_len = len(prompt_text)
+    output_len = len(result_str)
+    approx_tokens = (input_len + output_len) // 4
+    tps = approx_tokens / elapsed if elapsed > 0 else 0
+
+    ctx.log.debug(
+        f"[LLM]    - Result: elapsed={elapsed:.3f}s, approx_tokens={approx_tokens}, TPS={tps:.2f}"
+    )
+
+    return cleaned
