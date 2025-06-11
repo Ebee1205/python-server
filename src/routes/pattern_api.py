@@ -18,274 +18,169 @@ async def get_random_pattern(request: Request):
     ctx.log.info(f"[API]     - Generated pattern '{pattern['name']}' with params={params}, drawColor={result['drawColor']}")
     return result
 
+# TODO function을 그대로 보내서 실행시키기 때문에 외부에서 여기에 이상한 function 주입하면 해킹당할수도,,,
+# 일단 function 그대로 작성해서 보내기. create > get pattern template 뭐 이렇게 2중으로 구현해야할지도
 patterns = [
     {
-        "name": "blobDigitDither",
+        "name": "meltingScanline",
         "randomParams": lambda: {
-            "cellSize": random.randint(3, 6),
-            "frequency": round(random.uniform(0.01, 0.04), 4),
-            "blobScale": round(random.uniform(2.0, 4.0), 2),
-            "threshold": round(random.uniform(0.2, 0.5), 2),
+            "spots": [
+                {
+                    "x": random.randint(100, 500),
+                    "y": random.randint(100, 500),
+                    "radius": random.uniform(100, 150),
+                    "intensity": random.uniform(0.8, 1.2),
+                    "stretchY": random.uniform(0.6, 0.85)
+                }
+                for _ in range(random.randint(3, 4))
+            ],
+            "scanlineGap": random.randint(4, 6),
+            "scanlineHue": random.randint(120, 260),
             "scale": 1.0
         },
         "drawColor": True,
         "code": """
         function(x, y, p, ctx) {
-            const cs = p.cellSize;
-            const cx = Math.floor(x / cs) * cs;
-            const cy = Math.floor(y / cs) * cs;
+            function hsvToRgb(h, s, v) {
+                const c = v * s;
+                const m = v - c;
+                const hp = h / 60;
+                const k = hp % 6;
+                const x = c * (1 - Math.abs(hp % 2 - 1));
+                let r = 0, g = 0, b = 0;
 
-            // 중심 거리 계산
-            const dx = cx - ctx.width / 2;
-            const dy = cy - ctx.height / 2;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const maxDist = Math.sqrt((ctx.width / 2) ** 2 + (ctx.height / 2) ** 2);
-            const t = dist / maxDist;
+                if (hp < 1)      { r = c; g = x; b = 0; }
+                else if (hp < 2) { r = x; g = c; b = 0; }
+                else if (hp < 3) { r = 0; g = c; b = x; }
+                else if (hp < 4) { r = 0; g = x; b = c; }
+                else if (hp < 5) { r = x; g = 0; b = c; }
+                else             { r = c; g = 0; b = x; }
 
-            // 너무 먼 영역은 아예 배경
-            if (t > 0.9) {
-                return [255, 255, 255];
+                return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
             }
 
-            // 일관된 공간 노이즈 기반 샘플링
-            const val = ctx.noise(cx * p.frequency, cy * p.frequency)
-                    + 0.5 * ctx.noise(cx * p.frequency * 2, cy * p.frequency * 2);
-            const norm = val * p.blobScale;
+            let maxFalloff = 0;
+            for (let i = 0; i < p.spots.length; i++) {
+                const s = p.spots[i];
+                const dx = x - s.x;
+                const dy = (y - s.y) / s.stretchY;
+                const r2 = s.radius * s.radius;
+                const d2 = dx * dx + dy * dy;
+                const fall = Math.exp(-Math.pow(d2 / r2, 1.5)) * s.intensity;
+                if (fall > maxFalloff) maxFalloff = fall;
+            }
 
-            if (norm > p.threshold) {
-                const strength = (norm - p.threshold) / (1 - p.threshold);
+            if (maxFalloff < 0.01) return [0, 0, 0];
 
-                // 🎨 색상: 채도 높은 보라~파랑 계열
-                const r = 255 * (1 - strength * 0.8);
-                const g = 100 + 150 * strength;
-                const b = 255;
+            const brightness = maxFalloff * (y % p.scanlineGap === 0 ? 1.0 : 0.2);
+            const value = Math.pow(brightness, 0.6);
+            const sat = 1.0 - Math.pow(brightness, 6.5);
 
-                // 거리 기반 크기 및 모양
-                const dotScale = Math.pow(1 - t, 1.2);
-                const dotSize = cs * dotScale;
-
-                ctx.fill(r, g, b);
-                ctx.save();
-                ctx.translate(cx + cs / 2, cy + cs / 2);
-
-                if (t < 0.4) {
-                    ctx.rect(-dotSize / 2, -dotSize / 2, dotSize, dotSize);  // 중심부: 정사각형
-                } else {
-                    ctx.ellipse(0, 0, dotSize, dotSize);  // 외곽: 원형
+            const [r, g, b] = hsvToRgb(p.scanlineHue, sat, value);
+            return [r, g, b];
+        }
+        """
+    },
+    {
+        "name": "semiCircleGrid",
+        "randomParams": lambda: {
+            "cellSize": 40,
+            "cols": 10,
+            "rows": 10,
+            "rotationSet": [0, 90, 180, 270],
+            "fgColor": "#ffffff",
+            "bgColor": "#1e1e1e",
+            "scale": 1.0
+        },
+        "drawColor": True,
+        "code": """
+            function(x, y, p, ctx) {
+                function hexToRgb(hex) {
+                    hex = hex.replace('#', '');
+                    const bigint = parseInt(hex, 16);
+                    return [
+                        (bigint >> 16) & 255,
+                        (bigint >> 8) & 255,
+                        bigint & 255
+                    ];
                 }
 
-                ctx.restore();
-                return null;
-            } else {
-                return [255, 255, 255];
+                const cs = p.cellSize;
+                const col = Math.floor(x / cs);
+                const row = Math.floor(y / cs);
+                const index = row * p.cols + col;
+
+                const angle = p.rotationSet[index % p.rotationSet.length];
+                const cx = col * cs + cs / 2;
+                const cy = row * cs + cs / 2;
+
+                const dx = x - cx;
+                const dy = y - cy;
+
+                let rx = 0, ry = 0;
+                if (angle === 0)       { rx = dx;  ry = dy; }
+                else if (angle === 90)  { rx = dy;  ry = -dx; }
+                else if (angle === 180) { rx = -dx; ry = -dy; }
+                else if (angle === 270) { rx = -dy; ry = dx; }
+
+                const inSemiCircle = ry < 0 && (rx * rx + ry * ry <= (cs / 2) * (cs / 2));
+                return inSemiCircle ? hexToRgb(p.fgColor) : hexToRgb(p.bgColor);
             }
-        }
         """
     },
     {
-        "name": "spectralWaveStripes",
+        "name": "metaMounds",
         "randomParams": lambda: {
-            "stripeWidth": random.randint(1, 4),
-            "amplitude": random.uniform(50, 150),
-            "frequency": round(random.uniform(0.01, 0.03), 4),
-            "colors": random.sample([[0, 150, 255], [255, 120, 0], [100, 255, 180]], 2),
-            "centerFade": True,
-            "scale": 1.0
+            "seed": random.randint(0, 9999),
+            "frequency": round(random.uniform(0.002, 0.01), 4),
+            "threshold": round(random.uniform(0.3, 0.55), 2),
+            "amplitude": round(random.uniform(0.8, 1.4), 2),
+            "scale": 1.0,
+            "hue": random.randint(0, 360),         
+            "saturation": round(random.uniform(0.6, 1.0), 2), 
+            "value": round(random.uniform(0.7, 1.0), 2)     
         },
         "drawColor": True,
         "code": """
         function(x, y, p, ctx) {
-            const cx = 200;
-            const cy = 200;
+        ctx.noiseSeed(p.seed);
+        const nx = x * p.frequency;
+        const ny = y * p.frequency;
+        const h = ctx.noise(nx, ny); // 0~1
 
-            const stripeSpacing = p.stripeWidth * 2;
-            if (Math.floor(x) % stripeSpacing > p.stripeWidth) return [255, 255, 255];
+        const radius = h * p.amplitude * 200;  // 높이에 따라 반경 결정
+        const cx = Math.floor(x / radius) * radius;
+        const cy = Math.floor(y / radius) * radius;
 
-            // 🌀 정현파 + 노이즈로 왜곡된 파형
-            const baseWave = ctx.sin(x * p.frequency) * p.amplitude;
-            const noise = (ctx.noise(x * 0.01, y * 0.01) - 0.5) * p.amplitude * 1.2;  // ±60% amplitude
-            const wave = baseWave + noise;
+        const dx = x - cx;
+        const dy = y - cy;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        const m = Math.exp(-Math.pow(d / radius, 2));
 
-            const dist = Math.abs(y - (cy + wave));
+        if (m < p.threshold) return [0, 0, 0];
 
-            // ✨ fade: 중앙에서 밝고 멀어질수록 색상 전이
-            const fade = Math.exp(-dist * 0.04);  // 더 날카롭게 fade
+        const sat = p.saturation;
+        const val = m * p.value;
 
-            // 🎨 color interpolation
-            const c1 = p.colors[0], c2 = p.colors[1];
-            const r = c1[0] * (1 - fade) + c2[0] * fade;
-            const g = c1[1] * (1 - fade) + c2[1] * fade;
-            const b = c1[2] * (1 - fade) + c2[2] * fade;
+        const c = hsvToRgb(p.hue, sat, val);
+        return c;
 
-            return [r, g, b];
-        }
-
-        """
-    },
-    {
-        "name": "grainWavePattern",
-        "randomParams": lambda: {
-            "frequency": round(random.uniform(0.005, 0.015), 4),
-            "amplitude": random.randint(30, 80),
-            "grain": round(random.uniform(0.1, 0.3), 2),
-            "scale": 1.0
-        },
-        "drawColor": True,
-        "code": """
-        function(x, y, p, ctx) {
-            let colorStrength = 0;
-            const layerCount = 5; // 파도 개수
-            const spacing = 80;   // 각 파도 사이 간격
-
-            for (let i = 0; i < layerCount; i++) {
-                const yOffset = i * spacing + ctx.noise(i * 10) * 50;
-                const freq = p.frequency * (0.8 + ctx.noise(i) * 0.4); // 각 레이어 주파수 살짝 다르게
-                const amp = p.amplitude * (0.8 + ctx.noise(i + 100) * 0.4);
-                const wave = ctx.sin(x * freq + i * 100) * amp;
-                const base = wave + yOffset + ctx.noise(x * 0.01 + i, y * 0.01 + i) * 40;
-
-                if (y < base) {
-                    const noiseVal = ctx.noise(x * 0.5 + i, y * 0.5 + i);
-                    const grainStrength = Math.floor(noiseVal * 255 * p.grain);
-                    colorStrength += grainStrength;
-                }
-            }
-
-            if (colorStrength > 0) {
-                // 색상 보정 (밝기 누적 제한)
-                const final = Math.min(255, 120 + colorStrength / layerCount);
-                return [0, final, 255];
-            } else {
-                return [255, 255, 255];
-            }
-        }
-        """
-    },
-    {
-        "name": "spectralGradient",
-        "randomParams": lambda: {
-            "frequency": round(random.uniform(0.002, 0.008), 4),
-            "intensity": round(random.uniform(0.5, 1.0), 2),
-            "bands": random.randint(3, 6),
-            "scale": 1.0
-        },
-        "drawColor": True,
-        "code": """
-        function(x, y, p, ctx) {
-            // 방향 지정 (예: ↘ 방향)
-            const angle = Math.PI / 4; // 45도
-            const dx = Math.cos(angle);
-            const dy = Math.sin(angle);
-
-            // 방향성 흐름 계산
-            const projected = (x * dx + y * dy) * p.frequency;
-
-            // 부드러운 노이즈 변형 추가
-            const noise = ctx.noise(x * 0.005, y * 0.005) * 0.5;
-
-            const t = Math.min(1, Math.max(0, projected + noise * p.intensity)); // 0~1 보간값
-
-            // 🎨 두 색상 정의
-            const c1 = [255, 200, 240];  // 밝은 분홍
-            const c2 = [120, 180, 255];  // 밝은 파랑
-
-            const r = c1[0] * (1 - t) + c2[0] * t;
-            const g = c1[1] * (1 - t) + c2[1] * t;
-            const b = c1[2] * (1 - t) + c2[2] * t;
-
-            return [r, g, b];
-        }
-        """
-    },
-    {
-        "name": "digitSilhouette",
-        "randomParams": lambda: {
-            "cellSize": random.choice([4, 6, 8]),
-            "frequency": round(random.uniform(0.01, 0.05), 3),
-            "threshold": round(random.uniform(0.3, 0.6), 2),
-            "hue": random.randint(0, 360),
-            "scale": 1.0
-        },
-        "drawColor": True,
-        "code": """
-        function(x, y, p, ctx) {
-            const cs = p.cellSize;
-            const cx = Math.floor(x / cs) * cs;
-            const cy = Math.floor(y / cs) * cs;
-
-            // 중심 위치 기준 정렬
-            const gx = Math.floor(cx / cs);
-            const gy = Math.floor(cy / cs);
-
-            // 도트 + 스트라이프 혼합 패턴 (조건은 예시)
-            const isStripe = gx % 4 === 0;  // 수직 줄무늬
-            const isDot = (gx + gy) % 6 === 0;  // 격자 점
-
-            if (isStripe || isDot) {
-                // 💡 위치 기반으로 hue 변화 유지
-                const h = ((p.hue + (cx + cy) * 0.05) % 360) / 360;
-                const s = 1;
-                const l = 0.5;
-                const a = s * Math.min(l, 1 - l);
-                const f = (n) => {
-                    const k = (n + h * 12) % 12;
-                    return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-                };
-
-                const r = f(0) * 255;
-                const g = f(8) * 255;
-                const b = f(4) * 255;
-
-                return [r, g, b];
-            } else {
-                return [255, 255, 255];  // 배경
-            }
-        }
-        """
-    },
-    {
-        "name": "gridFractalGradient",
-        "randomParams": lambda: {
-            "cols": random.randint(5, 10),
-            "rows": random.randint(5, 10),
-            "color1": [random.randint(100, 255), random.randint(100, 255), random.randint(100, 255)],
-            "color2": [random.randint(0, 150), random.randint(0, 150), random.randint(0, 150)],
-            "gradientDir": random.choice(["horizontal", "vertical"]),
-            "scale": 1.0
-        },
-        "drawColor": True,
-        "code": """
-        function(x, y, p, ctx) {
-        const cw = 400 / p.cols;
-        const ch = 400 / p.rows;
-
-        const colIdx = Math.floor(x / cw);
-        const rowIdx = Math.floor(y / ch);
-
-        const localX = x % cw;
-        const localY = y % ch;
-
-        const inBox = true; // optional: introduce spacing later
-
-        if (inBox) {
-            let t;
-            if (p.gradientDir === "horizontal") {
-            t = localX / cw;
-            } else {
-            t = localY / ch;
-            }
-
-            const r = p.color1[0] * (1 - t) + p.color2[0] * t;
-            const g = p.color1[1] * (1 - t) + p.color2[1] * t;
-            const b = p.color1[2] * (1 - t) + p.color2[2] * t;
-
-            return [r, g, b];
-        } else {
-            return [255, 255, 255];
+        function hsvToRgb(h, s, v) {
+            const c = v * s;
+            const m = v - c;
+            const hp = h / 60;
+            const x = c * (1 - Math.abs(hp % 2 - 1));
+            let r=0, g=0, b=0;
+            if (hp < 1)      { r = c; g = x; b = 0; }
+            else if (hp < 2) { r = x; g = c; b = 0; }
+            else if (hp < 3) { r = 0; g = c; b = x; }
+            else if (hp < 4) { r = 0; g = x; b = c; }
+            else if (hp < 5) { r = x; g = 0; b = c; }
+            else             { r = c; g = 0; b = x; }
+            return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
         }
         }
         """
     }
-
 
 ]
