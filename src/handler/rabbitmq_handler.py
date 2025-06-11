@@ -80,7 +80,7 @@ class RabbitMQHandler:
                 try:
                     data = orjson.loads(message.body)
                     await processor(self.ctx, data)
-                    self.log.debug(f"[RMQ]     - Consume Msg: {data}")
+                    self.log.info(f"[RMQ]     - Consume Msg: {data}")
                     
                 except Exception as e:
                     self.log.error(f"[RMQ]     - Consume error ({queue_name}): {str(e)}")
