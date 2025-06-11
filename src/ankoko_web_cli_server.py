@@ -14,6 +14,7 @@ from src.app_context import AppContext
 from src.routes.websocket_basic import router as basic_ws_router
 from src.routes.basic_api import router as basic_router
 from src.routes.session_api import router as session_router
+from src.routes.pattern_api import router as pattern_router
 
 
 class AppFactory:
@@ -58,7 +59,7 @@ class AppFactory:
         app.state.ctx = ctx
         
         # 설정 로드
-        ctx.load_config("src/service/conf/py-server-local.cfg.json")
+        ctx.load_config("src/service/conf/ankoko-web-cli-local.cfg.json")
         
         # CORS 설정
         AppFactory._setup_cors(app, ctx)
@@ -88,6 +89,7 @@ class AppFactory:
             basic_ws_router,
             basic_router,
             session_router,
+            pattern_router
         ]
         
         for router in routers:
@@ -100,7 +102,8 @@ class AppFactory:
             print("     - Initializing application...")
             ctx = app.state.ctx
 
-            # 핸들러 초기화 후 연결 설정
+            # 초기화 후 연결 설정
+            await AppFactory._initialize_managers(ctx)
             await AppFactory._initialize_handlers(ctx)
             await AppFactory._setup_connections(ctx)
             
@@ -115,11 +118,18 @@ class AppFactory:
             raise
     
     @staticmethod
-    async def _initialize_handlers(ctx: AppContext) -> None:
-        """핸들러 초기화"""
+    async def _initialize_managers(ctx: AppContext) -> None:
+        """매니저 초기화"""
+        print("     - Initializing handlers...")   
         ctx._init_logger()
         AppFactory._test_logging(ctx.log)
         
+        ctx._init_system_manager()
+        
+    @staticmethod
+    async def _initialize_handlers(ctx: AppContext) -> None:
+        """핸들러 초기화"""    
+        ctx.log.info("     - Initializing handlers...")
         ctx._init_websocket()
         ctx._init_redis()
         ctx._init_rmq()
@@ -133,7 +143,7 @@ class AppFactory:
         
         # Redis 연결
         await ctx.redis_handler.connect()
-
+    
     @staticmethod
     async def _shutdown(app: FastAPI) -> None:
         """애플리케이션 종료 시 정리"""
@@ -165,21 +175,28 @@ class AppFactory:
                 ctx.log.info("     -- RabbitMQ handler closed")
             except Exception as e:
                 ctx.log.warning(f"     - RabbitMQ close failed: {e}")
+
+        # 모니터링 종료
+        if ctx.system_monitor:
+            try:
+                ctx.system_monitor.stop()
+                ctx.log.info("     -- system monitor stopped")
+            except Exception as e:
+                ctx.log.warning(f"     - system monitor stop failed: {e}")
     
     @staticmethod
     def _test_logging(logger) -> None:
         """로깅 테스트"""
-        logger.info("-- FILE LOG TEST START --")
+        logger.info("===FILE LOG TEST START===")
         logger.debug("   -test debug level")
-        logger.info("    -test info level")
-        logger.warning(" -test warn level")
+        logger.info("   -test info level")
+        logger.warning("   -test warn level")
         logger.error("   -test error level")
-        logger.info("-- FILE LOG TEST END --")
-
+        logger.info("===FILE LOG TEST END===")
 
 # 애플리케이션 인스턴스 생성
 app = AppFactory.create_app()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("src.ankoko_web_cli_server:app", host="0.0.0.0", port=8000, reload=True)
