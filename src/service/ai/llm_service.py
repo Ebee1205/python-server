@@ -33,17 +33,21 @@ async def llm_analyze_dialog(ctx, segments: list[dict]) -> dict:
     """
     사용자 대화 세그먼트를 받아 LLM으로 감성 분석 수행 (한국어 JSON 출력 보장)
     """
-    ctx.log.debug("[LLM] Start llm_analyze_dialog")
+    ctx.log.debug("[LLM]    Start llm_analyze_dialog")
 
     combined_text = "\n".join(f"{seg.get('speaker', '화자')} : {seg['text']}" for seg in segments)
 
     prompt_text = (
-        "다음 글을 분석하여 반드시 **한국어로 작성된 JSON 형식**으로 반환하세요.\n\n"
+        "다음 글을 분석하여 반드시 **한국어로 작성된 JSON 형식**으로 반환하세요.\n"
+        "※ 아래 규칙을 반드시 따르세요:\n"
+        "1. JSON 객체는 딱 하나만 있어야 하며, 다른 설명은 없어야 합니다.\n"
+        "2. 키는 `keyword` 와 `mood` 로 고정되어야 합니다. 이때 값은 단어로 정의합니다.\n"
+        "3. 키와 값 모두 **반드시 한국어**여야 하며, 다른언어가 섞이면 안 됩니다.\n\n"
         f"{combined_text}\n\n"
-        "결과는 다음 형식을 따라야 하며, 반드시 키/값 모두 한국어여야 합니다:\n"
+        "📌 출력 형식 예시 (이 형식과 정확히 동일해야 함):\n"
         "{\n"
-        "  \"keyword\": [\"키워드1\", \"키워드2\", \"키워드3\"],\n"
-        "  \"mood\": [\"분위기1\", \"분위기2\", \"분위기3\"]\n"
+        "  \"keyword\": [],\n"
+        "  \"mood\": []\n"
         "}"
     )
 
