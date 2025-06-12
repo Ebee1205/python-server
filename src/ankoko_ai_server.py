@@ -50,10 +50,15 @@ class PythonServer:
             self.running = True
             
         except Exception as e:
-            self.ctx.log.error(f"     -- Initialization error: {str(e)}")
+            if self.ctx and hasattr(self.ctx, "log") and self.ctx.log:
+                self.ctx.log.error(f"     -- Initialization error: {str(e)}")
+            else:
+                print(f"     -- Initialization error: {str(e)}")
+
             import traceback
             traceback.print_exc()
             raise
+
 
     async def start_background_tasks(self):
         """백그라운드 작업들 시작"""
