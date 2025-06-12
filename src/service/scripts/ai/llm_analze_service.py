@@ -1,9 +1,9 @@
 # src/service/ai/llm_service.py
 # AI > LLM 관련은 여기서 처리
 # TODO I/F 다듬어서 여기에 basic 추가
-import re
 from langchain.prompts import PromptTemplate
 
+import re
 def sanitize_json_string(json_str: str) -> str:
     """
     비표준 JSON 문자열에서 키를 쌍따옴표로 감싸는 등 보정
@@ -89,7 +89,7 @@ async def llm_default_pattern(ctx, function_code: str) -> str:
     ctx.log.debug("[LLM]     - Start llm_default_pattern")
 
     # 다른 LLM 모델 선택 (예: "default" 모델)
-    llama = ctx.llm_models.get("default", ctx.llm_models.get("default"))
+    llama = ctx.llm_models.get("default")
     if not llama:
         ctx.log.error("[LLM]    !! LLM model 'default' not found")
         return "Translation failed: No model found"
