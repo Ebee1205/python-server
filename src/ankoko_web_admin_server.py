@@ -13,7 +13,7 @@ import asyncio
 from src.app_context import AppContext
 from routes.chat_ws import router as basic_ws_router
 from src.routes.basic_api import router as basic_router
-from src.routes.pattern_api import router as pattern_router
+from src.routes.admin_pattern_api import router as admin_pattern_router
 
 
 class AppFactory:
@@ -87,7 +87,7 @@ class AppFactory:
         routers = [
             basic_ws_router,
             basic_router,
-            pattern_router
+            admin_pattern_router
         ]
         
         for router in routers:

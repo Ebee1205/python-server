@@ -2,7 +2,24 @@ import time
 from abc import ABC, abstractmethod
 from langchain_community.llms import Ollama
 
+def load_all_llm_managers():
+    from .llm_default_manager import DefaultLLMManager
+    from .llm_ops_manager import OpsLLMManager
+    from .llm_analyze_manager import AnalyzeLLMManager
+
 class BaseLLMManager(ABC):
+    """
+    BaseLLMManager
+
+    - Ollama 기반 LangChain 모델을 관리하는 추상 부모 클래스입니다.
+    - 공통된 초기화 로직, 모델 구성, 체인 생성 메서드를 제공하며,
+    자식 클래스에서는 프롬프트 템플릿 구성 및 결과 로그 처리 방식만 구현하면 됩니다.
+
+    필수 속성 (자식 클래스에서 선언해야 함):
+    - manager_key: ctx.llm_models[manager_key] 형태로 접근될 고유 식별자
+    - model_key: cfg.llm.models[model_key]로 접근하여 사용할 LLM 구성 식별자
+    """
+
     def __init__(self, ctx):
         self.ctx = ctx
         self.model = None

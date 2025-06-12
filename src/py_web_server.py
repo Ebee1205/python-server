@@ -15,6 +15,7 @@ from routes.chat_ws import router as basic_ws_router
 from src.routes.basic_api import router as basic_router
 from src.routes.session_api import router as session_router
 from src.routes.pattern_api import router as pattern_router
+from src.routes.admin_pattern_api import router as admin_pattern_api
 
 
 class AppFactory:
@@ -89,7 +90,8 @@ class AppFactory:
             basic_ws_router,
             basic_router,
             session_router,
-            pattern_router
+            pattern_router,
+            admin_pattern_api
         ]
         
         for router in routers:

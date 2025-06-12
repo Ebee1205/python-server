@@ -176,7 +176,8 @@ class AppContext:
         self.llm_manager = {}
 
         if self.cfg.llm:
-            from src.service.scripts.ai.llm_base_manager import BaseLLMManager
+            from src.service.scripts.ai.llm_base_manager import BaseLLMManager, load_all_llm_managers
+            load_all_llm_managers()
 
             for cls in BaseLLMManager.__subclasses__():
                 model_key = getattr(cls, "model_key", None)

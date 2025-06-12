@@ -2,13 +2,7 @@ from fastapi import APIRouter, Request, Body
 from pydantic import BaseModel
 import random
 
-from src.service.scripts.ai.llm_ops_manager import OpsLLMManager
-
 router = APIRouter(prefix="/v1/patterns", tags=["Pattern"])
-
-# ---- 요청 바디 스키마 정의 ----
-class PatternTranslateRequest(BaseModel):
-    code: str  # JS function(x, y, p, ctx)
 
 @router.get("/create")
 async def get_random_pattern(request: Request):
@@ -24,21 +18,6 @@ async def get_random_pattern(request: Request):
 
     ctx.log.info(f"[API]     - Generated pattern '{pattern['name']}' with params={params}, drawColor={result['drawColor']}")
     return result
-
-@router.post("/translate")
-async def translate_pattern(request: Request, body: PatternTranslateRequest):
-    """
-    사용자 JS draw 함수를 받아 patterns[] 항목 포맷으로 변환
-    """
-    ctx = request.app.state.ctx
-    llm = ctx.llm_manager["ops"]
-    result = await llm.convert_pattern(body.code)
-
-    return {
-        "success": True,
-        "result": result
-    }
-
 
 # TODO function을 그대로 보내서 실행시키기 때문에 외부에서 여기에 이상한 function 주입하면 해킹당할수도,,,
 # 일단 function 그대로 작성해서 보내기. create > get pattern template 뭐 이렇게 2중으로 구현해야할지도
