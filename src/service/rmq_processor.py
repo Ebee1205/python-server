@@ -4,7 +4,7 @@ import src.common.common_codes as codes
 from src.utils import redis_utils
 from src.utils import rabbitmq_utils
 from src.service.scripts import id_generator, chat_service
-from service.ai.llm_analze_service import llm_analyze_dialog
+from src.service.scripts.ai.llm_analze_service import llm_analyze_dialog
 
 # TODO service name을 cfg 파일에서 부여하고 있기 때문에 이를 이용해서 라우터 섞이지 않게 방어로직 넣어주기(정확히는 시스템에 따라사용하는 맵 다르게)
 

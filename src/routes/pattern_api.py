@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Body
 from pydantic import BaseModel
 import random
 
-from service.ai.llm_analze_service import llm_default_pattern
+from src.service.scripts.ai.llm_analze_service import llm_default_pattern
 
 router = APIRouter(prefix="/v1/patterns", tags=["Pattern"])
 
