@@ -33,7 +33,7 @@ class AnalyzeLLMManager(BaseLLMManager):
             )
         elif task_type == "summarize":
             return (
-                "다음 내용을 간결하게 요약해주세요. 반드시 **한국어**로 작성해야 하며, 3문장 이내로 정리하세요.\n\n"
+                "다음 내용을 딱 한 문장으로 요약해주세요. 반드시 **한국어**로 작성해야 합니다.\n\n"
                 f"{content}"
             )
         elif task_type == "translate":

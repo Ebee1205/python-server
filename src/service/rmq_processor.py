@@ -34,7 +34,7 @@ async def process_llm_request(ctx, msg):
 
     llm = ctx.llm_manager["analyze"]
     llm_result = await llm.run_task("analyze", segments)
-
+    llm_summ = await llm.run_task("summarize", segments)
 
     # 결과 메시지 구성
     result_msg = {
@@ -47,7 +47,7 @@ async def process_llm_request(ctx, msg):
             "userId": msg["hd"].get("userId")
         },
         "dt": {
-            "msg": req_msg.get("msg"),
+            "msg": llm_summ,
             "llm_analysis": llm_result
         }
     }
