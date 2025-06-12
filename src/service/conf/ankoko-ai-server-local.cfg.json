@@ -30,7 +30,11 @@
           "provider": "ollama",
           "model": "llama3.2"
         },
-        "service": {
+        "analize": {
+          "provider": "ollama",
+          "model": "llama3.2"
+        },
+        "ops": {
           "provider": "ollama",
           "model": "llama3.2"
         }

@@ -71,6 +71,16 @@ class PythonServer:
         
         self.ctx.log.info("     -- Background tasks started")
 
+    async def periodic_health_check(self):
+        """주기적 헬스체크"""
+        while self.running:
+            try:
+                # Redis, RabbitMQ, MQTT 연결 상태 확인
+                # 필요시 재연결 시도
+                await asyncio.sleep(30)  # 30초마다 체크
+            except Exception as e:
+                self.ctx.log.error(f"Health check error: {e}")
+
     async def periodic_cleanup(self):
         """주기적 정리 작업"""
         while self.running:
@@ -149,7 +159,7 @@ class PythonServer:
 
     async def run(self):
         """메인 서버 실행 루프"""
-        await self.initialize()
+        await self.initialize() 
         await self.start_background_tasks()
         
         try:
