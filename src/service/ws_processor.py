@@ -1,7 +1,8 @@
+from service.scripts.chat import chat_service
 import src.common.common_codes as codes
 from src.utils import redis_utils
 from src.utils import rabbitmq_utils
-from src.service.scripts import id_generator, chat_service
+from src.service.scripts import id_generator
 
 async def processor(ctx, websocket, msg):
     hd = msg.get("hd")
