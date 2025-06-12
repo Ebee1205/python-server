@@ -11,7 +11,7 @@ import traceback
 import asyncio
 
 from src.app_context import AppContext
-from src.routes.websocket_basic import router as basic_ws_router
+from routes.chat_ws import router as basic_ws_router
 from src.routes.basic_api import router as basic_router
 from src.routes.pattern_api import router as pattern_router
 
@@ -197,4 +197,4 @@ app = AppFactory.create_app()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("src.ankoko_web_admin_server:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("src.ankoko_web_admin_server:app", host="0.0.0.0", port=8000, reload=False)

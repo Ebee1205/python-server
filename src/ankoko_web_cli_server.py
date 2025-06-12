@@ -11,7 +11,7 @@ import traceback
 import asyncio
 
 from src.app_context import AppContext
-from src.routes.websocket_basic import router as basic_ws_router
+from routes.chat_ws import router as basic_ws_router
 from src.routes.basic_api import router as basic_router
 from src.routes.session_api import router as session_router
 from src.routes.pattern_api import router as pattern_router
@@ -59,7 +59,7 @@ class AppFactory:
         app.state.ctx = ctx
         
         # 설정 로드
-        ctx.load_config("src/service/conf/ankoko-web-cli-local.cfg.json")
+        ctx.load_config("src/service/conf/ankoko-web-client-server-local.cfg.json")
         
         # CORS 설정
         AppFactory._setup_cors(app, ctx)
@@ -199,4 +199,4 @@ app = AppFactory.create_app()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("src.ankoko_web_cli_server:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("src.ankoko_web_cli_server:app", host="0.0.0.0", port=8000, reload=False)
