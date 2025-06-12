@@ -8,9 +8,9 @@ def sanitize_json_string(json_str: str) -> str:
     return re.sub(r'([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1 "\2":', json_str)
 
 
-class AnalizeLLMManager(BaseLLMManager):
+class AnalyzeLLMManager(BaseLLMManager):
     model_key = "default"
-    manager_key = "analize"
+    manager_key = "analyze"
 
     def _get_prompt_template(self, task_type: str, content: str) -> str:
         """
