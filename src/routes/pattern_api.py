@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Body
 from pydantic import BaseModel
 import random
 
-from src.service.scripts.ai.llm_analze_service import llm_default_pattern
+from src.service.scripts.ai.llm_ops_manager import OpsLLMManager
 
 router = APIRouter(prefix="/v1/patterns", tags=["Pattern"])
 
@@ -31,12 +31,12 @@ async def translate_pattern(request: Request, body: PatternTranslateRequest):
     사용자 JS draw 함수를 받아 patterns[] 항목 포맷으로 변환
     """
     ctx = request.app.state.ctx
-    ctx.log.info("[API]     - Pattern translation requested")
+    llm = ctx.llm_manager["ops"]
+    result = await llm.convert_pattern(body.code)
 
-    translated_code = await llm_default_pattern(ctx, body.code)
     return {
         "success": True,
-        "result": translated_code
+        "result": result
     }
 
 

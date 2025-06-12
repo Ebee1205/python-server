@@ -1,7 +1,7 @@
 import time
 import re
 from langchain.prompts import PromptTemplate
-from llm_base_manager import BaseLLMManager
+from src.service.scripts.ai.llm_base_manager import BaseLLMManager
 
 def sanitize_json_string(json_str: str) -> str:
     """비표준 JSON 문자열에서 키를 쌍따옴표로 감싸는 등 보정"""
@@ -9,11 +9,8 @@ def sanitize_json_string(json_str: str) -> str:
 
 
 class AnalizeLLMManager(BaseLLMManager):
-    def _get_model(self):
-        model = self.ctx.llm_models.get("default")
-        if not model:
-            self.ctx.log.error("[LLM]    !! LLM model 'default' is not initialized")
-        return model
+    model_key = "default"
+    manager_key = "analize"
 
     def _get_prompt_template(self, task_type: str, content: str) -> str:
         """

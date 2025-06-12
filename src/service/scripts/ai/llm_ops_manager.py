@@ -1,6 +1,7 @@
 import time
 from langchain.prompts import PromptTemplate
-from llm_base_manager import BaseLLMManager
+
+from src.service.scripts.ai.llm_base_manager import BaseLLMManager
 
 
 def clean_llm_result(raw: str) -> str:
@@ -13,11 +14,8 @@ def clean_llm_result(raw: str) -> str:
 
 
 class OpsLLMManager(BaseLLMManager):
-    def _get_model(self):
-        model = self.ctx.llm_models.get("default")
-        if not model:
-            self.ctx.log.error("[LLM]    !! LLM model 'default' not found")
-        return model
+    model_key = "default"      # cfg.llm.models["default"] → Ollama(…)
+    manager_key = "ops"        # ctx.llm_manager["ops"] = self
 
     def _get_prompt_template(self, function_code: str) -> str:
         return (

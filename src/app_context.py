@@ -13,7 +13,6 @@ from src.handler.rabbitmq_handler import RabbitMQHandler
 from src.handler.mqtt_handler import MQTTHandler
 
 from fastapi.middleware.cors import CORSMiddleware
-from langchain_community.llms import Ollama
 
 class LoggerConfig(BaseModel):
     level: str
@@ -111,7 +110,7 @@ class AppContext:
         self.system_monitor = None
 
         # 서비스
-        self.llm_models = {}
+        self.llm_manager = {}
 
     def load_config(self, path: str) -> AppConfig:
         """JSON 파일을 로드하고 AppConfig 모델로 파싱"""
@@ -174,17 +173,35 @@ class AppContext:
     def _init_llms(self):
         self.log.debug("+ start init LLMs")
 
+        self.llm_manager = {}
+
         if self.cfg.llm:
-            for key, model_cfg in self.cfg.llm.models.items():
-                if model_cfg.provider == "ollama":
-                    self.llm_models[key] = Ollama(model=model_cfg.model)
-                    self.log.debug(f"[LLM]    - Loaded model '{key}' as '{model_cfg.model}'")
-                else:
-                    self.log.warning(f"[LLM]    !! Unsupported provider '{model_cfg.provider}' for model '{key}'")
+            from src.service.scripts.ai.llm_base_manager import BaseLLMManager
+
+            for cls in BaseLLMManager.__subclasses__():
+                model_key = getattr(cls, "model_key", None)
+                manager_key = getattr(cls, "manager_key", None)
+
+                if not model_key or not manager_key:
+                    self.log.warning(f"[LLM]     !! {cls.__name__} missing model_key or manager_key")
+                    continue
+
+                if model_key not in self.cfg.llm.models:
+                    self.log.warning(f"[LLM]     !! No model config found for model_key '{model_key}'")
+                    continue
+
+                instance = cls(self)
+                try:
+                    instance.init()
+                    self.llm_manager[manager_key] = instance
+                    self.log.debug(f"[LLM]     - Registered LLM manager '{manager_key}' using model '{model_key}' ({cls.__name__})")
+                except Exception as e:
+                    self.log.error(f"[LLM]     !! Failed to init {cls.__name__}: {e}")
         else:
-            self.log.warning("[LLM]    !! No LLM config found")
+            self.log.warning("[LLM]     !! No LLM config found")
 
         self.log.debug("- end init LLMs")
+
 
     # TODO def _init_mysql(self):
     # TODO _destroy() 메서드 추가

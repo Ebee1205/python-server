@@ -1,10 +1,10 @@
 import time
 from langchain.prompts import PromptTemplate
-from llm_base_manager import BaseLLMManager
+from src.service.scripts.ai.llm_base_manager import BaseLLMManager
 
 class DefaultLLMManager(BaseLLMManager):
-    def _get_model(self):
-        return self.ctx.llm_models.get("default")
+    model_key = "default"
+    manager_key = "default"
 
     def _get_prompt_template(self):
         return PromptTemplate(
