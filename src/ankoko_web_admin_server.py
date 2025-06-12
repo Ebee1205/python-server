@@ -57,7 +57,7 @@ class AppFactory:
         app.state.ctx = ctx
         
         # 설정 로드
-        ctx.load_config("src/service/conf/ankoko-web-admin-local.cfg.json")
+        ctx.load_config("src/service/conf/ankoko_web_admin_server.cfg.json")
         
         # CORS 설정
         AppFactory._setup_cors(app, ctx)
