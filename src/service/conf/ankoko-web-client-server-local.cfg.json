@@ -13,7 +13,7 @@
       "allow_headers": ["*"],
       "allow_credentials": true
     },
-    
+
     "logger": {
         "level": "debug",
         "path": "./logs/ankoko-web-client-server.log-%DATE%",

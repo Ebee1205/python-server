@@ -2,12 +2,7 @@
 # AI > LLM 관련은 여기서 처리
 # TODO I/F 다듬어서 여기에 basic 추가
 import re
-import random
-from langchain_community.llms import Ollama
 from langchain.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-
-llama = Ollama(model="llama3.2")  # 필요 시 한국어 모델로 교체
 
 def sanitize_json_string(json_str: str) -> str:
     """
@@ -19,10 +14,13 @@ def sanitize_json_string(json_str: str) -> str:
 import time
 
 async def llm_analyze_dialog(ctx, segments: list[dict]) -> dict:
-    """
-    사용자 대화 세그먼트를 받아 LLM으로 감성 분석 수행 (한국어 JSON 출력 보장)
-    """
     ctx.log.debug("[LLM]    - Start llm_analyze_dialog")
+
+    # LLM 가져오기
+    llama = ctx.llm_models.get("default")
+    if not llama:
+        ctx.log.error("[LLM]    !! LLM model 'default' is not initialized")
+        return {}
 
     combined_text = "\n".join(f"{seg.get('speaker', '화자')} : {seg['text']}" for seg in segments)
 
@@ -87,12 +85,15 @@ def clean_llm_result(raw: str) -> str:
 
     return cleaned
 
-async def llm_translate_pattern(ctx, function_code: str) -> str:
-    """
-    JavaScript pattern draw function 또는 p5.js 코드를 입력받아,
-    patterns 리스트에 들어갈 Python 딕셔너리 포맷 문자열로 변환합니다.
-    """
-    ctx.log.debug("[LLM]     - Start llm_translate_pattern")
+async def llm_default_pattern(ctx, function_code: str) -> str:
+    ctx.log.debug("[LLM]     - Start llm_default_pattern")
+
+    # 다른 LLM 모델 선택 (예: "default" 모델)
+    llama = ctx.llm_models.get("default", ctx.llm_models.get("default"))
+    if not llama:
+        ctx.log.error("[LLM]    !! LLM model 'default' not found")
+        return "Translation failed: No model found"
+
 
     prompt_text = (
         "You are a code converter that extracts visual rendering pattern definitions "

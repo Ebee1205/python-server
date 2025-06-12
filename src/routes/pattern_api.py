@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Body
 from pydantic import BaseModel
 import random
 
-from src.service.ai.llm_service import llm_translate_pattern
+from service.ai.llm_analze_service import llm_default_pattern
 
 router = APIRouter(prefix="/v1/patterns", tags=["Pattern"])
 
@@ -33,7 +33,7 @@ async def translate_pattern(request: Request, body: PatternTranslateRequest):
     ctx = request.app.state.ctx
     ctx.log.info("[API]     - Pattern translation requested")
 
-    translated_code = await llm_translate_pattern(ctx, body.code)
+    translated_code = await llm_default_pattern(ctx, body.code)
     return {
         "success": True,
         "result": translated_code

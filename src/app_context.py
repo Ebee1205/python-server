@@ -13,6 +13,7 @@ from src.handler.rabbitmq_handler import RabbitMQHandler
 from src.handler.mqtt_handler import MQTTHandler
 
 from fastapi.middleware.cors import CORSMiddleware
+from langchain_community.llms import Ollama
 
 class LoggerConfig(BaseModel):
     level: str
@@ -60,6 +61,13 @@ class HTTPConfig(BaseModel):
     allow_methods: list[str]
     allow_headers: list[str]
     allow_credentials: bool
+    
+class LLMModelConfig(BaseModel):
+    provider: str
+    model: str
+
+class LLMConfig(BaseModel):
+    models: dict[str, LLMModelConfig]
 
 class AppConfig(BaseModel):
     # 상위 항목 직접 정의
@@ -83,6 +91,10 @@ class AppConfig(BaseModel):
     enable_monitoring: Optional[bool] = True
     monitoring_interval: Optional[int] = 10
 
+    # 서비스 관련
+    llm: Optional[LLMConfig] = None
+
+
 class AppContext:
     def __init__(self):
         self.cfg = {}
@@ -97,6 +109,9 @@ class AppContext:
 
         # 매니저
         self.system_monitor = None
+
+        # 서비스
+        self.llm_models = {}
 
     def load_config(self, path: str) -> AppConfig:
         """JSON 파일을 로드하고 AppConfig 모델로 파싱"""
@@ -155,6 +170,21 @@ class AppContext:
         self.mqtt_handler = MQTTHandler(self)
 
         self.log.debug("- end init MQTT")
+
+    def _init_llms(self):
+        self.log.debug("+ start init LLMs")
+
+        if self.cfg.llm:
+            for key, model_cfg in self.cfg.llm.models.items():
+                if model_cfg.provider == "ollama":
+                    self.llm_models[key] = Ollama(model=model_cfg.model)
+                    self.log.debug(f"[LLM]    - Loaded model '{key}' as '{model_cfg.model}'")
+                else:
+                    self.log.warning(f"[LLM]    !! Unsupported provider '{model_cfg.provider}' for model '{key}'")
+        else:
+            self.log.warning("[LLM]    !! No LLM config found")
+
+        self.log.debug("- end init LLMs")
 
     # TODO def _init_mysql(self):
     # TODO _destroy() 메서드 추가

@@ -14,6 +14,19 @@
       "allow_credentials": true
     },
     
+    "llm": {
+      "models": {
+        "default": {
+          "provider": "ollama",
+          "model": "llama3.2"
+        },
+        "service": {
+          "provider": "ollama",
+          "model": "llama3.2"
+        }
+      }
+    },
+    
     "logger": {
         "level": "debug",
         "path": "./logs/test.log-%DATE%",

@@ -7,13 +7,6 @@
     "secret_key": "changethis-secret-key",
     "access_token_expire_minutes": 1440,
 
-    "http_config": {
-      "allow_origins": ["http://localhost:3000"],
-      "allow_methods": ["*"],
-      "allow_headers": ["*"],
-      "allow_credentials": true
-    },
-    
     "logger": {
         "level": "debug",
         "path": "./logs/ankoko-ai-server.log-%DATE%",
@@ -23,7 +16,27 @@
         "rotation": "daily",
         "use_console": true
     },
+    
+    "http_config": {
+      "allow_origins": ["http://localhost:3000"],
+      "allow_methods": ["*"],
+      "allow_headers": ["*"],
+      "allow_credentials": true
+    },
 
+    "llm": {
+      "models": {
+        "default": {
+          "provider": "ollama",
+          "model": "llama3.2"
+        },
+        "service": {
+          "provider": "ollama",
+          "model": "llama3.2"
+        }
+      }
+    },
+    
     "mysql": {
       "host": "localhost",
       "port": 3306,

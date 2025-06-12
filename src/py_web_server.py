@@ -11,7 +11,7 @@ import traceback
 import asyncio
 
 from src.app_context import AppContext
-from src.routes.websocket_basic import router as basic_ws_router
+from routes.chat_ws import router as basic_ws_router
 from src.routes.basic_api import router as basic_router
 from src.routes.session_api import router as session_router
 from src.routes.pattern_api import router as pattern_router
@@ -105,6 +105,7 @@ class AppFactory:
             # 초기화 후 연결 설정
             await AppFactory._initialize_managers(ctx)
             await AppFactory._initialize_handlers(ctx)
+            await AppFactory._initialize_algorithms(ctx)
             await AppFactory._setup_connections(ctx)
             
             ctx.log.info("     == Initialization complete")
@@ -116,7 +117,7 @@ class AppFactory:
                 print(f"     -- Initialization error: {str(e)}")
             traceback.print_exc()
             raise
-    
+
     @staticmethod
     async def _initialize_managers(ctx: AppContext) -> None:
         """매니저 초기화"""
@@ -129,12 +130,18 @@ class AppFactory:
     @staticmethod
     async def _initialize_handlers(ctx: AppContext) -> None:
         """핸들러 초기화"""    
-        ctx.log.info("     - Initializing handlers...")   
+        ctx.log.info("     - Initializing handlers...")
         ctx._init_websocket()
         ctx._init_redis()
         ctx._init_rmq()
         ctx._init_mqtt()
-    
+        
+    @staticmethod
+    async def _initialize_algorithms(ctx: AppContext) -> None:
+        """알고리즘 초기화"""
+        print("     - Initializing algorithms...")   
+        ctx._init_llms()
+
     @staticmethod
     async def _setup_connections(ctx: AppContext) -> None:
         """외부 서비스 연결 설정"""
@@ -198,7 +205,16 @@ class AppFactory:
                 ctx.log.info("     -- system monitor stopped")
             except Exception as e:
                 ctx.log.warning(f"     - system monitor stop failed: {e}")
-    
+
+        # LLM 모델 정리
+        if hasattr(ctx, "llm_models") and ctx.llm_models:
+            try:
+                for name, model in ctx.llm_models.items():
+                    ctx.log.info(f"     -- LLM model '{name}' unloaded (model={getattr(model, 'model', 'unknown')})")
+                ctx.llm_models.clear()
+            except Exception as e:
+                ctx.log.warning(f"     - LLM models cleanup failed: {e}")
+
     @staticmethod
     def _test_logging(logger) -> None:
         """로깅 테스트"""
@@ -214,4 +230,4 @@ app = AppFactory.create_app()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("src.py_web_server:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("src.py_web_server:app", host="0.0.0.0", port=8000, reload=False)

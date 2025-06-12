@@ -38,15 +38,13 @@ class PythonServer:
             self.ctx._init_redis()
             self.ctx._init_rmq()
 
+            # 알고리즘 초기화
+            self.ctx._init_llms()
+
             # 연결 시작
             await self.ctx.rmq_handler.connect()
             await self.ctx.rmq_handler.consume_multi()
             await self.ctx.redis_handler.connect()
-
-            # MQTT 연결 및 구독
-            self.ctx.mqtt_handler.connect()
-            for topic in self.ctx.cfg.mqtt.topics:
-                self.ctx.mqtt_handler.subscribe(topic)
 
             self.ctx.log.info("     == Initialization complete")
             self.running = True
@@ -123,6 +121,15 @@ class PythonServer:
                 self.ctx.log.info("     -- system monitor stopped")
             except Exception as e:
                 self.ctx.log.warning(f"     - system monitor stop failed: {e}")
+
+        # LLM 모델 정리
+        if hasattr(self.ctx, "llm_models") and self.ctx.llm_models:
+            try:
+                for name, model in self.ctx.llm_models.items():
+                    self.ctx.log.info(f"     -- LLM model '{name}' unloaded (model={getattr(model, 'model', 'unknown')})")
+                self.ctx.llm_models.clear()
+            except Exception as e:
+                self.ctx.log.warning(f"     - LLM models cleanup failed: {e}")
 
         self.ctx.log.info("     -- Server shutdown complete")
 
