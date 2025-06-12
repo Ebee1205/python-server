@@ -11,7 +11,7 @@ import traceback
 import asyncio
 
 from src.app_context import AppContext
-from routes.chat_ws import router as basic_ws_router
+from routes.chat_ws import router as chat_ws_router
 from src.routes.basic_api import router as basic_router
 from src.routes.session_api import router as session_router
 from src.routes.pattern_api import router as pattern_router
@@ -86,7 +86,7 @@ class AppFactory:
     def _register_routes(app: FastAPI) -> None:
         """라우터 등록"""
         routers = [
-            basic_ws_router,
+            chat_ws_router,
             basic_router,
             session_router,
             pattern_router
@@ -199,4 +199,4 @@ app = AppFactory.create_app()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("src.ankoko_web_cli_server:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("src.ankoko_web_cli_server:app", host="0.0.0.0", port=8000, reload=True)

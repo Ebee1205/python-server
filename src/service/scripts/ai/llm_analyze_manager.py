@@ -7,7 +7,6 @@ def sanitize_json_string(json_str: str) -> str:
     """비표준 JSON 문자열에서 키를 쌍따옴표로 감싸는 등 보정"""
     return re.sub(r'([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1 "\2":', json_str)
 
-
 class AnalyzeLLMManager(BaseLLMManager):
     model_key = "default"
     manager_key = "analyze"

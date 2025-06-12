@@ -17,7 +17,6 @@ from src.routes.session_api import router as session_router
 from src.routes.pattern_api import router as pattern_router
 from src.routes.admin_pattern_api import router as admin_pattern_api
 
-
 class AppFactory:
     """애플리케이션 팩토리 클래스"""
     
