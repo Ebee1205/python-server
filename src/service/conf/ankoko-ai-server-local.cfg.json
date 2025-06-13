@@ -24,23 +24,6 @@
       "allow_credentials": true
     },
 
-    "llm": {
-      "models": {
-        "default": {
-          "provider": "ollama",
-          "model": "llama3.2"
-        },
-        "analyze": {
-          "provider": "ollama",
-          "model": "llama3.2"
-        },
-        "ops": {
-          "provider": "ollama",
-          "model": "llama3.2"
-        }
-      }
-    },
-    
     "mysql": {
       "host": "localhost",
       "port": 3306,

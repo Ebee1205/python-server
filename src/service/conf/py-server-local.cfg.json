@@ -20,7 +20,7 @@
           "provider": "ollama",
           "model": "llama3.2"
         },
-        "analize": {
+        "analyze": {
           "provider": "ollama",
           "model": "llama3.2"
         },

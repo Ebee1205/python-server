@@ -13,6 +13,23 @@
       "allow_headers": ["*"],
       "allow_credentials": true
     },
+    
+    "llm": {
+      "models": {
+        "default": {
+          "provider": "ollama",
+          "model": "llama3.2"
+        },
+        "analyze": {
+          "provider": "ollama",
+          "model": "llama3.2"
+        },
+        "ops": {
+          "provider": "ollama",
+          "model": "llama3.2"
+        }
+      }
+    },
 
     "logger": {
         "level": "debug",

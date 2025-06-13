@@ -23,7 +23,7 @@
         "rotation": "daily",
         "use_console": true
     },
-
+        
     "mysql": {
       "host": "localhost",
       "port": 3306,
