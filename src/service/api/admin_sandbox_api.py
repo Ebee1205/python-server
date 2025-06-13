@@ -1,3 +1,8 @@
+# src/service/api/admin_sandbox_api.py
+# OLLAMA 직접 호출
+# TODO 아놔 이거를 그냥 분리하려니까 rmq로 보내고 응답받은걸 우째 한번에 해결하지? 라는 의문이 생기네 ㅋㅋ... 
+# 의문) rmq로 했을때는 send하고 res를 기다리고 return하는 util 만들기 vs 
+
 from fastapi import APIRouter, Request
 import time
 
@@ -18,6 +23,7 @@ def _create_response(status: dict, tid: int, prompt: str, result: any):
         "result": result
     }
 
+
 @router.post("/lint")
 async def lint_prompt(request: Request, body: LintRequest):
     """프롬프트 린트 검사"""
@@ -34,7 +40,7 @@ async def lint_prompt(request: Request, body: LintRequest):
         return _create_response(status, int(time.time() * 1000), body.prompt, result)
     
     except Exception as e:
-        ctx.log.error(f"[Sandbox]     Lint error: {str(e)}")
+        ctx.log.error(f"[API]     Lint error: {str(e)}")
         return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, {})
 
 
@@ -51,7 +57,7 @@ async def transform_prompt(request: Request, body: TransformRequest):
         return _create_response(ResponseStatus.SUCCESS, int(time.time() * 1000), body.prompt, result)
     
     except Exception as e:
-        ctx.log.error(f"[Sandbox]     Transform error: {str(e)}")
+        ctx.log.error(f"[API]     Transform error: {str(e)}")
         return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, "")
 
 
@@ -71,8 +77,9 @@ async def sweep_parameters(request: Request, body: SweepTestRequest):
         return _create_response(ResponseStatus.BAD_REQUEST, int(time.time() * 1000), body.prompt, [])
     
     except Exception as e:
-        ctx.log.error(f"[Sandbox]     Sweep error: {str(e)}")
+        ctx.log.error(f"[API]     Sweep error: {str(e)}")
         return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, [])
+
 
 @router.post("/single")
 async def single_llm_test(request: Request, body: LLMTestRequest):
@@ -93,8 +100,9 @@ async def single_llm_test(request: Request, body: LLMTestRequest):
         return _create_response(ResponseStatus.BAD_REQUEST, int(time.time() * 1000), body.prompt, {})
     
     except Exception as e:
-        ctx.log.error(f"[Sandbox]     Single LLM test error: {str(e)}")
+        ctx.log.error(f"[API]     Single LLM test error: {str(e)}")
         return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, {})
+
 
 @router.post("/batch")
 async def batch_llm_test(request: Request, body: LLMTestRequest):
@@ -115,5 +123,5 @@ async def batch_llm_test(request: Request, body: LLMTestRequest):
         return _create_response(ResponseStatus.BAD_REQUEST, int(time.time() * 1000), body.prompt, {})
     
     except Exception as e:
-        ctx.log.error(f"[Sandbox]     Batch LLM test error: {str(e)}")
+        ctx.log.error(f"[API]     Batch LLM test error: {str(e)}")
         return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, {})

@@ -7,7 +7,8 @@ class ResponseStatus:
     NOT_FOUND     = { "code": "E0004", "msg": "리소스를 찾을 수 없습니다" }
     CONFLICT      = { "code": "E0005", "msg": "이미 존재하는 리소스입니다" }
     SERVER_ERROR  = { "code": "E0500", "msg": "서버 내부 오류가 발생했습니다" }
-
+    TIMEOUT       = { "code": "E0009", "msg": "응답 시간이 초과되었습니다" }
+    
     # 샌드박스 및 LLM 테스트용 추가 코드
     PROMPT_LINT_FAILED   = { "code": "E0400", "msg": "프롬프트 검사 결과 문제가 발견되었습니다" }
     LLM_MANAGER_MISSING  = { "code": "E0501", "msg": "LLM 매니저를 찾을 수 없습니다" }

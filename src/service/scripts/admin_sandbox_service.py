@@ -12,9 +12,9 @@ class StatusModel(BaseModel):
     msg: Optional[str] = None
 
 class PerformanceModel(BaseModel):
-    response_time_ms: float
-    memory_usage_mb: float
-    cpu_usage_percent: float
+    response_time: float
+    memory_usage: float
+    cpu_usage: float
     token_count: int
     throughput_tps: float
     timestamp: str
@@ -67,9 +67,9 @@ class PerformanceMonitor:
         final_memory = psutil.virtual_memory().used / 1024 / 1024
         
         return {
-            "response_time_ms": (end_time - self.start_time) * 1000,
-            "memory_usage_mb": final_memory - self.initial_memory,
-            "cpu_usage_percent": psutil.cpu_percent(interval=None),
+            "response_time": (end_time - self.start_time) * 1000,
+            "memory_usage": final_memory - self.initial_memory,
+            "cpu_usage": psutil.cpu_percent(interval=None),
             "timestamp": datetime.now().isoformat()
         }
 
@@ -218,13 +218,13 @@ class SandboxService:
         metrics_raw = monitor.stop_monitoring()
         token_count = (len(prompt) + len(result)) // 4  # 대략적인 토큰 수 계산
         
-        response_time_s = metrics_raw["response_time_ms"] / 1000
+        response_time_s = metrics_raw["response_time"] / 1000
         tps = token_count / response_time_s if response_time_s > 0 else 0
 
         return PerformanceModel(
-            response_time_ms=round(metrics_raw["response_time_ms"], 3),
-            memory_usage_mb=round(metrics_raw["memory_usage_mb"], 3),
-            cpu_usage_percent=metrics_raw["cpu_usage_percent"],
+            response_time=round(metrics_raw["response_time"], 3),
+            memory_usage=round(metrics_raw["memory_usage"], 3),
+            cpu_usage=metrics_raw["cpu_usage"],
             token_count=token_count,
             throughput_tps=round(tps, 2),
             timestamp=metrics_raw["timestamp"]
@@ -241,14 +241,14 @@ class SandboxService:
         
         if successful_results:
             avg_metrics = {
-                "response_time_ms": round(
-                    sum(r["metrics"].response_time_ms for r in successful_results) / len(successful_results), 3
+                "response_time": round(
+                    sum(r["metrics"].response_time for r in successful_results) / len(successful_results), 3
                 ),
-                "memory_usage_mb": round(
-                    sum(r["metrics"].memory_usage_mb for r in successful_results) / len(successful_results), 3
+                "memory_usage": round(
+                    sum(r["metrics"].memory_usage for r in successful_results) / len(successful_results), 3
                 ),
-                "cpu_usage_percent": round(
-                    sum(r["metrics"].cpu_usage_percent for r in successful_results) / len(successful_results), 3
+                "cpu_usage": round(
+                    sum(r["metrics"].cpu_usage for r in successful_results) / len(successful_results), 3
                 ),
                 "token_count": int(
                     sum(r["metrics"].token_count for r in successful_results) / len(successful_results)
@@ -259,9 +259,9 @@ class SandboxService:
             }
         else:
             avg_metrics = {
-                "response_time_ms": 0,
-                "memory_usage_mb": 0,
-                "cpu_usage_percent": 0,
+                "response_time": 0,
+                "memory_usage": 0,
+                "cpu_usage": 0,
                 "token_count": 0,
                 "throughput_tps": 0
             }
