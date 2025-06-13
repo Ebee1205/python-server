@@ -2,6 +2,7 @@
 
 # 'redis_' pref
 from redis.exceptions import RedisError
+import orjson
 
 # Redis Stream에 메시지 추가
 async def redis_stream_add(ctx, stream_key, message: dict):
@@ -62,3 +63,39 @@ async def redis_stream_create_group(ctx, stream_key, group_name):
             return True
         ctx.log.error(f"[REDIS]    -- XGROUP.CREATE error: {stream_key}, {str(e)}")
         return False
+    
+
+async def redis_stream_wait_result(ctx, stream_key: str, timeout=10_000):
+    """
+    Redis Stream에서 지정된 키의 결과를 블로킹으로 대기하여 반환합니다.
+
+    :param ctx: AppContext (redis_handler 필요)
+    :param stream_key: stream 이름 (예: sandbox_result:<task_id>)
+    :param timeout: 블로킹 시간 (ms)
+    :return: 메시지 dict or None
+    """
+    log = ctx.log
+    redis = ctx.redis_handler.get_client()
+
+    try:
+        entries = await redis.xread({stream_key: "0"}, block=timeout, count=1)
+
+        if entries:
+            _, messages = entries[0]
+            message_id, data = messages[0]
+
+            # 값이 JSON 문자열인 경우 파싱 시도
+            parsed_data = {
+                k: orjson.loads(v) if isinstance(v, str) and v.startswith("{") else v
+                for k, v in data.items()
+            }
+
+            log.info(f"[REDIS]    << Result received from '{stream_key}': {parsed_data}")
+            return parsed_data
+
+        log.warning(f"[REDIS]    == No result in '{stream_key}' (timeout={timeout}ms)")
+        return None
+
+    except Exception as e:
+        log.error(f"[REDIS]    -- Error reading stream '{stream_key}': {e}")
+        return None

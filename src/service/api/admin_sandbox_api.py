@@ -1,17 +1,10 @@
-# src/service/api/admin_sandbox_api.py
-# OLLAMA 직접 호출
-# TODO 아놔 이거를 그냥 분리하려니까 rmq로 보내고 응답받은걸 우째 한번에 해결하지? 라는 의문이 생기네 ㅋㅋ... 
-# 의문) rmq로 했을때는 send하고 res를 기다리고 return하는 util 만들기 vs 
-
 from fastapi import APIRouter, Request
-import time
-
+import time, uuid, orjson
 from service.scripts.admin_sandbox_service import (
-    SandboxService, TransformRequest, LintRequest, 
-    SweepTestRequest, LLMTestRequest
+    TransformRequest, LintRequest, SweepTestRequest, LLMTestRequest
 )
+from src.utils.redis_stream_utils import redis_stream_add, redis_stream_wait_result
 from src.common.common_codes import ResponseStatus
-from src.utils import rabbitmq_utils
 
 router = APIRouter(prefix="/v1/admin/sandbox", tags=["Sandbox"])
 
@@ -23,105 +16,69 @@ def _create_response(status: dict, tid: int, prompt: str, result: any):
         "result": result
     }
 
+async def _publish_task(ctx, type_: str, body: dict, prompt: str):
+    task_id = str(uuid.uuid4())
+    tid = int(time.time() * 1000)
+
+    message = {
+        "task_id": task_id,
+        "type": type_,
+        "prompt": prompt,
+        "body": orjson.dumps(body)
+    }
+
+    await redis_stream_add(ctx, "sandbox_task_stream", message)
+
+    ctx.log.info(f"[API]     >> Task Published: type={type_}, task_id={task_id}")
+
+    return {
+        "status": ResponseStatus.SUCCESS,
+        "tid": tid,
+        "prompt": prompt,
+        "result": {
+            "task_id": task_id,
+            "message": f"Task '{type_}' accepted. Use /result/{task_id} to retrieve result."
+        }
+    }
+
+@router.get("/result/{task_id}")
+async def get_task_result(request: Request, task_id: str):
+    ctx = request.app.state.ctx
+    stream = f"sandbox_result:{task_id}"
+
+    # XREAD BLOCK 방식으로 결과 기다리기 (또는 XRANGE 조회만)
+    result = await redis_stream_wait_result(ctx, stream, timeout=10_000)
+
+    if result:
+        return result
+    else:
+        return {
+            "status": ResponseStatus.NOT_FOUND,
+            "result": f"No result for task_id={task_id}"
+        }
+
 
 @router.post("/lint")
 async def lint_prompt(request: Request, body: LintRequest):
-    """프롬프트 린트 검사"""
     ctx = request.app.state.ctx
-    service = SandboxService(ctx)
-
-    ctx.log.info(f"[API]     - /lint LLM test requested | prompt={body.prompt[:30]}...")
-
-    try:
-        result = service.lint_prompt(body.prompt)
-        status = ResponseStatus.SUCCESS if not result["issues"] else {
-            "code": "E0400", "msg": "프롬프트 검사 결과 문제 있음"
-        }
-        return _create_response(status, int(time.time() * 1000), body.prompt, result)
-    
-    except Exception as e:
-        ctx.log.error(f"[API]     Lint error: {str(e)}")
-        return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, {})
-
+    return await _publish_task(ctx, "lint", body.model_dump(), body.prompt)
 
 @router.post("/transform")
 async def transform_prompt(request: Request, body: TransformRequest):
-    """프롬프트 변환"""
     ctx = request.app.state.ctx
-    service = SandboxService(ctx)
-    
-    ctx.log.info(f"[API]     - /transform LLM test requested | prompt={body.prompt[:30]}...")
-
-    try:
-        result = service.transform_prompt(body.prompt, body.type, body.analysis_type)
-        return _create_response(ResponseStatus.SUCCESS, int(time.time() * 1000), body.prompt, result)
-    
-    except Exception as e:
-        ctx.log.error(f"[API]     Transform error: {str(e)}")
-        return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, "")
-
+    return await _publish_task(ctx, "transform", body.model_dump(), body.prompt)
 
 @router.post("/sweep")
 async def sweep_parameters(request: Request, body: SweepTestRequest):
-    """파라미터 스위프 테스트"""
     ctx = request.app.state.ctx
-    service = SandboxService(ctx)
-    
-    ctx.log.info(f"[API]     - /sweep LLM test requested | prompt={body.prompt[:30]}...")
-
-    try:
-        results = await service.run_sweep_test(body.prompt, body.sweep)
-        return _create_response(ResponseStatus.SUCCESS, int(time.time() * 1000), body.prompt, results)
-    
-    except ValueError as e:
-        return _create_response(ResponseStatus.BAD_REQUEST, int(time.time() * 1000), body.prompt, [])
-    
-    except Exception as e:
-        ctx.log.error(f"[API]     Sweep error: {str(e)}")
-        return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, [])
-
+    return await _publish_task(ctx, "sweep", body.model_dump(), body.prompt)
 
 @router.post("/single")
 async def single_llm_test(request: Request, body: LLMTestRequest):
-    """단일 LLM 테스트"""
     ctx = request.app.state.ctx
-    service = SandboxService(ctx)
-    
-    ctx.log.info(f"[API]     - /single LLM test requested | prompt={body.prompt[:30]}...")
-
-    try:
-        result = await service.run_single_llm_test(body)
-        status = ResponseStatus.SUCCESS if not result.get("error") else {
-            "code": "E0501", "msg": result["error"]
-        }
-        return _create_response(status, int(time.time() * 1000), body.prompt, result)
-    
-    except ValueError as e:
-        return _create_response(ResponseStatus.BAD_REQUEST, int(time.time() * 1000), body.prompt, {})
-    
-    except Exception as e:
-        ctx.log.error(f"[API]     Single LLM test error: {str(e)}")
-        return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, {})
-
+    return await _publish_task(ctx, "single", body.model_dump(), body.prompt)
 
 @router.post("/batch")
 async def batch_llm_test(request: Request, body: LLMTestRequest):
-    """배치 LLM 테스트"""
     ctx = request.app.state.ctx
-    service = SandboxService(ctx)
-    
-    ctx.log.info(f"[API]     - /batch LLM test requested | prompt={body.prompt[:30]}...")
-
-    try:
-        result = await service.run_batch_llm_test(body)
-        summary = result["summary"]
-        msg = f"성공 {summary['successful']} / 실패 {summary['failed']}"
-        status = {"code": ResponseStatus.SUCCESS["code"], "msg": msg}
-        return _create_response(status, int(time.time() * 1000), body.prompt, result)
-    
-    except ValueError as e:
-        return _create_response(ResponseStatus.BAD_REQUEST, int(time.time() * 1000), body.prompt, {})
-    
-    except Exception as e:
-        ctx.log.error(f"[API]     Batch LLM test error: {str(e)}")
-        return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, {})
+    return await _publish_task(ctx, "batch", body.model_dump(), body.prompt)
