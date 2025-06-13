@@ -11,12 +11,7 @@ import traceback
 import asyncio
 
 from src.app_context import AppContext
-from src.service.chat_ws import router as basic_ws_router
 from src.service.basic_api import router as basic_router
-from src.service.session_api import router as session_router
-from src.service.pattern_api import router as pattern_router
-from src.service.admin_pattern_api import router as admin_pattern_api
-from service.admin_llama_api import router as admin_sandbox_direct_router
 from service.admin_sandbox_api import router as admin_sandbox_router
 
 class AppFactory:
@@ -88,11 +83,7 @@ class AppFactory:
     def _register_routes(app: FastAPI) -> None:
         """라우터 등록"""
         routers = [
-            basic_ws_router,
             basic_router,
-            session_router,
-            pattern_router,
-            admin_sandbox_direct_router,
             admin_sandbox_router
         ]
         for router in routers:

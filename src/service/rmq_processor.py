@@ -1,7 +1,5 @@
 # service/rmq_processor.py
 
-import src.service.scripts.llm_chat_service as chat
-
 # 메시지 라우터
 async def processor(ctx, msg, queue_name: str = "unknown"):
     hd = msg.get("hd", {})
@@ -22,18 +20,18 @@ async def processor(ctx, msg, queue_name: str = "unknown"):
 
 
 RMQ_PROCESSOR_MAP = {
-    "ankoko-to-algo": {
-        "chat-system": chat.process_llm_response
-    },
-    "ankoko-from-algo": {
-        "chat-user": chat.process_llm_request  
-    },
-    "ankoko-admin-from-algo": {
-        "sandbox-lint": chat.process_llm_response,
-        "sandbox-transform": chat.process_llm_response,
-        "sandbox-sweep": chat.process_llm_response,
-        "sandbox-single": chat.process_llm_response,
-        "sandbox-batch": chat.process_llm_response,
-    },
+    # "ankoko-to-algo": {
+    #     "chat-system": chat.process_llm_response
+    # },
+    # "ankoko-from-algo": {
+    #     "chat-user": chat.process_llm_request  
+    # },
+    # "ankoko-admin-from-algo": {
+    #     "sandbox-lint": chat.process_llm_response,
+    #     "sandbox-transform": chat.process_llm_response,
+    #     "sandbox-sweep": chat.process_llm_response,
+    #     "sandbox-single": chat.process_llm_response,
+    #     "sandbox-batch": chat.process_llm_response,
+    # },
 
 }
