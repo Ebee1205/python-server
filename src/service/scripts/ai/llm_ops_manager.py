@@ -1,8 +1,6 @@
-import time
 from langchain.prompts import PromptTemplate
-
+import time
 from src.service.scripts.ai.llm_base_manager import BaseLLMManager
-
 
 def clean_llm_result(raw: str) -> str:
     cleaned = raw.strip()
@@ -12,12 +10,16 @@ def clean_llm_result(raw: str) -> str:
         cleaned = re.sub(r"\n?```$", "", cleaned)
     return cleaned
 
-
 class OpsLLMManager(BaseLLMManager):
-    model_key = "default"      # cfg.llm.models["default"] → Ollama(…)
-    manager_key = "ops"        # ctx.llm_manager["ops"] = self
+    model_key = "default"
+    manager_key = "ops"
 
-    def _get_prompt_template(self, function_code: str) -> str:
+    def _get_prompt_template(self):
+        """일반적인 LLM 분석용 프롬프트"""
+        return PromptTemplate(input_variables=["input"], template="{input}")
+
+    def _get_pattern_prompt(self, function_code: str) -> str:
+        """p5.js 기반 함수 → 패턴 파싱용 프롬프트 텍스트 생성"""
         return (
             "You are a code converter that extracts visual rendering pattern definitions "
             "from JavaScript functions written for p5.js, and formats them as a single Python dictionary entry for a `patterns` list.\n\n"
@@ -48,7 +50,7 @@ class OpsLLMManager(BaseLLMManager):
         if not self.initialized:
             raise RuntimeError("[LLM]    !! Not initialized")
 
-        prompt_text = self._get_prompt_template(function_code)
+        prompt_text = self._get_pattern_prompt(function_code)
         prompt = PromptTemplate(input_variables=["input"], template="{input}")
         chain = prompt | self.model
 
@@ -64,7 +66,6 @@ class OpsLLMManager(BaseLLMManager):
 
         cleaned = clean_llm_result(result_str)
         self.ctx.log.debug(f"[LLM]    << Raw LLM response (cleaned):\n{cleaned}")
-
         return cleaned
 
 # llm = OpsLLMManager(ctx)

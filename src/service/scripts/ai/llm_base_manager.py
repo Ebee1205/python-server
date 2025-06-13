@@ -7,7 +7,6 @@ def load_all_llm_managers():
     from .llm_default_manager import DefaultLLMManager
     from .llm_ops_manager import OpsLLMManager
     from .llm_analyze_manager import AnalyzeLLMManager
-    from .llm_sandbox_manager import SandboxLLMManager
 
 class BaseLLMManager(ABC):
     """
