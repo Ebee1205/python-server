@@ -11,12 +11,12 @@ import traceback
 import asyncio
 
 from src.app_context import AppContext
-from routes.chat_ws import router as basic_ws_router
-from src.routes.basic_api import router as basic_router
-from src.routes.session_api import router as session_router
-from src.routes.pattern_api import router as pattern_router
-from src.routes.admin_pattern_api import router as admin_pattern_api
-from src.routes.admin_sandbox_api import router as admin_sandbox_api
+from src.service.chat_ws import router as basic_ws_router
+from src.service.basic_api import router as basic_router
+from src.service.session_api import router as session_router
+from src.service.pattern_api import router as pattern_router
+from src.service.admin_pattern_api import router as admin_pattern_api
+from src.service.admin_sandbox_api import router as admin_sandbox_api
 
 class AppFactory:
     """애플리케이션 팩토리 클래스"""
