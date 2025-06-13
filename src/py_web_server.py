@@ -16,7 +16,8 @@ from src.service.basic_api import router as basic_router
 from src.service.session_api import router as session_router
 from src.service.pattern_api import router as pattern_router
 from src.service.admin_pattern_api import router as admin_pattern_api
-from src.service.admin_sandbox_api import router as admin_sandbox_api
+from service.admin_llama_api import router as admin_sandbox_direct_router
+from service.admin_sandbox_api import router as admin_sandbox_router
 
 class AppFactory:
     """애플리케이션 팩토리 클래스"""
@@ -91,10 +92,9 @@ class AppFactory:
             basic_router,
             session_router,
             pattern_router,
-            admin_pattern_api,
-            admin_sandbox_api
+            admin_sandbox_direct_router,
+            admin_sandbox_router
         ]
-        
         for router in routers:
             app.include_router(router)
     

@@ -6,6 +6,7 @@ from src.service.scripts.sandbox_service import (
     SweepTestRequest, LLMTestRequest
 )
 from src.common.common_codes import ResponseStatus
+from src.utils import rabbitmq_utils
 
 router = APIRouter(prefix="/v1/admin/sandbox", tags=["Sandbox"])
 
@@ -68,7 +69,7 @@ async def sweep_parameters(request: Request, body: SweepTestRequest):
         ctx.log.error(f"[Sandbox] Sweep error: {str(e)}")
         return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, [])
 
-@router.post("/llama/single")
+@router.post("/single")
 async def single_llm_test(request: Request, body: LLMTestRequest):
     """단일 LLM 테스트"""
     ctx = request.app.state.ctx
@@ -88,7 +89,7 @@ async def single_llm_test(request: Request, body: LLMTestRequest):
         ctx.log.error(f"[Sandbox] Single LLM test error: {str(e)}")
         return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, {})
 
-@router.post("/llama/batch")
+@router.post("/batch")
 async def batch_llm_test(request: Request, body: LLMTestRequest):
     """배치 LLM 테스트"""
     ctx = request.app.state.ctx

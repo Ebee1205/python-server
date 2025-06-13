@@ -12,7 +12,7 @@ import asyncio
 
 from src.app_context import AppContext
 from src.service.admin_pattern_api import router as admin_pattern_router
-from src.service.admin_sandbox_api import router as admin_sandbox_router
+from service.admin_llama_api import router as admin_sandbox_router
 
 
 class AppFactory:
