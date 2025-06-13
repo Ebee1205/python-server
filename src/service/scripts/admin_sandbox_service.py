@@ -24,7 +24,7 @@ class ModelInfo(BaseModel):
     provider: str
 
 class TransformRequest(BaseModel):
-    type: str
+    event: str
     analysis_type: Optional[str] = None
     prompt: str
 

@@ -3,11 +3,11 @@
     "redis": {
       "chat-user":          { "stream_key": "ankoko:chat:stream",          "handler": "handlers.chat.ChatMessageHandler" },
       "chat-ai":            { "stream_key": "ankoko:chat:stream",          "handler": "handlers.chat.AIMessageHandler" },
-      "sandbox-lint":       { "stream_key": "ankoko-admin-from-algo",      "handler": "src.service.scripts.rmq_basic_service.forward_to_redis" },
-      "sandbox-transform":  { "stream_key": "ankoko-admin-from-algo",      "handler": "src.service.scripts.rmq_basic_service.forward_to_redis" },
-      "sandbox-sweep":      { "stream_key": "ankoko-admin-from-algo",      "handler": "src.service.scripts.rmq_basic_service.forward_to_redis" },
-      "sandbox-single":     { "stream_key": "ankoko-admin-from-algo",      "handler": "src.service.scripts.rmq_basic_service.forward_to_redis" },
-      "sandbox-batch":      { "stream_key": "ankoko-admin-from-algo",      "handler": "src.service.scripts.rmq_basic_service.forward_to_redis" }
+      "sandbox-lint":       { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.lint_prompt" },
+      "sandbox-transform":  { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.transform_prompt" },
+      "sandbox-sweep":      { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.sweep_parameters" },
+      "sandbox-single":     { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.single_llm_test" },
+      "sandbox-batch":      { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.batch_llm_test" }
     },
     "rmq": {
       "chat-user":          { "queue": "ankoko-from-algo",                 "handler": "src.service.scripts.rmq_basic_service.ping" }
