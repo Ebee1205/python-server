@@ -1,6 +1,6 @@
 from langchain.prompts import PromptTemplate
 import time
-from src.service.scripts.ai.llm_base_manager import BaseLLMManager
+from src.service.ai.llm_base_manager import BaseLLMManager
 
 def clean_llm_result(raw: str) -> str:
     cleaned = raw.strip()

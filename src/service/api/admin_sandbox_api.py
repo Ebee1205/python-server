@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 import time
 
-from src.service.scripts.sandbox_service import (
+from service.scripts.admin_sandbox_service import (
     SandboxService, TransformRequest, LintRequest, 
     SweepTestRequest, LLMTestRequest
 )

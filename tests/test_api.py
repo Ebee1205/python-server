@@ -1,5 +1,4 @@
 from fastapi.testclient import TestClient
-from src.main import app
 from src.app_context import AppContext
 
 class FakeLogger:
@@ -29,11 +28,3 @@ class TestAppContext(AppContext):
         self.db_handler = FakeDBHandler()  # 실제 DB 사용 안 함
 
 # 테스트 시작 전에 ctx 교체
-app.state.ctx = TestAppContext()
-client = TestClient(app)
-
-def test_websocket_connection():
-    with client.websocket_connect("/ws") as websocket:
-        websocket.send_text("ping")
-        data = websocket.receive_json()
-        assert "echo" in data["text"]

@@ -3,7 +3,7 @@
 # routes/basic_ws.py
 
 from fastapi import APIRouter, WebSocket
-from src.service.ws_processor import processor
+from src.service.messaging.ws_processor import processor
 
 router = APIRouter(prefix="/v1/basic", tags=["Basic"])
 

@@ -11,8 +11,8 @@ import traceback
 import asyncio
 
 from src.app_context import AppContext
-from src.service.basic_api import router as basic_router
-from service.admin_sandbox_api import router as admin_sandbox_router
+from service.api.basic_api import router as basic_router
+from service.api.admin_sandbox_api import router as admin_sandbox_router
 
 class AppFactory:
     """애플리케이션 팩토리 클래스"""

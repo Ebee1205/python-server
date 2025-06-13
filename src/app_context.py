@@ -7,10 +7,10 @@ from typing import Optional
 
 import src.modules.py_logger as py_logger
 from src.modules.system_monitor import SystemMonitor
-from src.handler.websocket_handler import WebSocketHandler
-from src.handler.redis_handler import RedisHandler
-from src.handler.rabbitmq_handler import RabbitMQHandler
-from src.handler.mqtt_handler import MQTTHandler
+from src.handlers.websocket_handler import WebSocketHandler
+from src.handlers.redis_handler import RedisHandler
+from src.handlers.rabbitmq_handler import RabbitMQHandler
+from src.handlers.mqtt_handler import MQTTHandler
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -176,7 +176,7 @@ class AppContext:
         self.llm_manager = {}
 
         if self.cfg.llm:
-            from src.service.scripts.ai.llm_base_manager import BaseLLMManager, load_all_llm_managers
+            from src.service.ai.llm_base_manager import BaseLLMManager, load_all_llm_managers
             load_all_llm_managers()
 
             for cls in BaseLLMManager.__subclasses__():

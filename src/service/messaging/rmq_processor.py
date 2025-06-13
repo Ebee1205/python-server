@@ -1,5 +1,6 @@
-# service/rmq_processor.py
+# service/messaging/rmq_processor.py
 
+from src.service.scripts.ws_basic_service import ws_ping
 # 메시지 라우터
 async def processor(ctx, msg, queue_name: str = "unknown"):
     hd = msg.get("hd", {})
@@ -20,9 +21,9 @@ async def processor(ctx, msg, queue_name: str = "unknown"):
 
 
 RMQ_PROCESSOR_MAP = {
-    # "ankoko-to-algo": {
-    #     "chat-system": chat.process_llm_response
-    # },
+    "que-name": {
+        "event-type": ws_ping
+    },
     # "ankoko-from-algo": {
     #     "chat-user": chat.process_llm_request  
     # },

@@ -1,5 +1,5 @@
 # api 기본 예제
-# routes/basic_api.py
+# service/api/basic_api.py
 
 from fastapi import APIRouter, Request
 

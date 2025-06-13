@@ -1,6 +1,6 @@
 import src.common.common_codes as codes
 
-from src.service.ws_basic_service import handle_ping
+from src.service.scripts.ws_basic_service import handle_ping
 
 async def processor(ctx, websocket, msg):
     hd = msg.get("hd")

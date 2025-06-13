@@ -7,7 +7,7 @@ from aio_pika.exceptions import AMQPConnectionError
 from functools import partial
 import orjson
 
-from src.service.rmq_processor import processor
+from src.service.messaging.rmq_processor import processor
 
 class RabbitMQHandler:
     def __init__(self, ctx):
