@@ -9,21 +9,22 @@ from src.service.scripts import id_generator
 # TODO service name을 cfg 파일에서 부여하고 있기 때문에 이를 이용해서 라우터 섞이지 않게 방어로직 넣어주기(정확히는 시스템에 따라사용하는 맵 다르게)
 
 # 메시지 라우터
-async def processor(ctx, msg):
-    hd = msg.get("hd")
+async def processor(ctx, msg, queue_name: str = "unknown"):
+    hd = msg.get("hd", {})
     msg_type = hd.get('type')
-    tid = hd.get("tid")
-    sid = hd.get("sid")
-    mid = hd.get("mid")
     
-    handler = RMQ_PROCESSOR_MAP.get(msg_type)
+    # 큐별 라우팅 맵 선택
+    router = RMQ_PROCESSOR_MAP.get(queue_name)
+    if not router:
+        ctx.log.warning(f"[RMQ]     - No routing map for queue: {queue_name}")
+        return {"status": "error", "msg": f"No routing for queue: {queue_name}"}
 
+    handler = router.get(msg_type)
     if not handler:
-        ctx.log.warning(f"[RMQ]     - Unknown processor type: {msg_type}")
+        ctx.log.warning(f"[RMQ]     - Unknown msg type '{msg_type}' for queue '{queue_name}'")
         return {"status": "error", "msg": f"Unknown type: {msg_type}"}
 
     return await handler(ctx, msg)
-
 
 # LLM 분석 처리 후 결과 발행 (from → to)
 async def process_llm_request(ctx, msg):
@@ -56,7 +57,7 @@ async def process_llm_request(ctx, msg):
     return result_msg
 
 
-# 2️⃣ LLM 결과를 WebSocket으로 전송 (from-algo → client)
+# LLM 결과를 WebSocket으로 전송 (from-algo → client)
 async def process_llm_response(ctx, msg):
     """LLM 분석 결과 수신 → WebSocket 전달"""
 
@@ -108,8 +109,11 @@ async def process_llm_response(ctx, msg):
         raise ValueError(f"Processing failed: sid={req_msg.sid}, error={e}")
 
 
-# 메시지 라우팅
 RMQ_PROCESSOR_MAP = {
-    "chat-user": process_llm_request,   # 또는 적절한 핸들러로 교체
-    "chat-system": process_llm_response
+    "ankoko-to-algo": {
+        "chat-system": process_llm_response
+    },
+    "ankoko-from-algo": {
+        "chat-user": process_llm_request  
+    }
 }

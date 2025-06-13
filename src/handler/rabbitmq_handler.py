@@ -4,6 +4,7 @@ import aio_pika
 from aio_pika import ExchangeType
 from aio_pika.abc import AbstractIncomingMessage
 from aio_pika.exceptions import AMQPConnectionError
+from functools import partial
 import orjson
 
 from src.service.rmq_processor import processor
@@ -68,7 +69,7 @@ class RabbitMQHandler:
     def get_config(self):
         return self.cfg
 
-    async def consume(self, queue_name: str, processor=processor):
+    async def consume(self, queue_name: str, processor_func):
         if not self.channel:
             self.log.error("[RMQ]     - Channel not connected")
             raise RuntimeError("Channel is not connected")
@@ -79,9 +80,8 @@ class RabbitMQHandler:
             async with message.process():
                 try:
                     data = orjson.loads(message.body)
-                    await processor(self.ctx, data)
-                    self.log.info(f"[RMQ]     - Consume Msg: {data}")
-                    
+                    await processor_func(self.ctx, data)
+                    self.log.info(f"[RMQ]     - Consumed from '{queue_name}': {data}")
                 except Exception as e:
                     self.log.error(f"[RMQ]     - Consume error ({queue_name}): {str(e)}")
 
@@ -101,9 +101,9 @@ class RabbitMQHandler:
                 self.log.warning(f"[RMQ]     - Invalid queue config: {q}")
                 continue
 
-            # req_que만 consume, res_que는 send 전용
             if queue_type == "req":
-                await self.consume(queue_name, processor)
+                # 큐별로 식별해서 processor에게 넘겨줌
+                processor_func = partial(processor, queue_name=queue_name)
+                await self.consume(queue_name, processor_func)
             else:
-                self.log.info(f"[RMQ]     == response queue ({queue_name}) type={queue_type}")
-
+                self.log.info(f"[RMQ]     == Skipping response queue '{queue_name}' (type={queue_type})")
