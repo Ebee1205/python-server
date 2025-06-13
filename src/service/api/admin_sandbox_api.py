@@ -10,10 +10,9 @@ from src.utils import rabbitmq_utils
 
 router = APIRouter(prefix="/v1/admin/sandbox", tags=["Sandbox"])
 
-def _create_response(status_code: str, message: str, tid: int, prompt: str, result: any):
-    """공통 응답 형식 생성"""
+def _create_response(status: dict, tid: int, prompt: str, result: any):
     return {
-        "status": {"code": status_code, "msg": message},
+        "status": status,
         "tid": tid,
         "prompt": prompt,
         "result": result
@@ -24,7 +23,9 @@ async def lint_prompt(request: Request, body: LintRequest):
     """프롬프트 린트 검사"""
     ctx = request.app.state.ctx
     service = SandboxService(ctx)
-    
+
+    ctx.log.info(f"[API]     - /lint LLM test requested | prompt={body.prompt[:30]}...")
+
     try:
         result = service.lint_prompt(body.prompt)
         status = ResponseStatus.SUCCESS if not result["issues"] else {
@@ -33,7 +34,7 @@ async def lint_prompt(request: Request, body: LintRequest):
         return _create_response(status, int(time.time() * 1000), body.prompt, result)
     
     except Exception as e:
-        ctx.log.error(f"[Sandbox] Lint error: {str(e)}")
+        ctx.log.error(f"[Sandbox]     Lint error: {str(e)}")
         return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, {})
 
 
@@ -43,12 +44,14 @@ async def transform_prompt(request: Request, body: TransformRequest):
     ctx = request.app.state.ctx
     service = SandboxService(ctx)
     
+    ctx.log.info(f"[API]     - /transform LLM test requested | prompt={body.prompt[:30]}...")
+
     try:
         result = service.transform_prompt(body.prompt, body.type, body.analysis_type)
         return _create_response(ResponseStatus.SUCCESS, int(time.time() * 1000), body.prompt, result)
     
     except Exception as e:
-        ctx.log.error(f"[Sandbox] Transform error: {str(e)}")
+        ctx.log.error(f"[Sandbox]     Transform error: {str(e)}")
         return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, "")
 
 
@@ -58,6 +61,8 @@ async def sweep_parameters(request: Request, body: SweepTestRequest):
     ctx = request.app.state.ctx
     service = SandboxService(ctx)
     
+    ctx.log.info(f"[API]     - /sweep LLM test requested | prompt={body.prompt[:30]}...")
+
     try:
         results = await service.run_sweep_test(body.prompt, body.sweep)
         return _create_response(ResponseStatus.SUCCESS, int(time.time() * 1000), body.prompt, results)
@@ -66,7 +71,7 @@ async def sweep_parameters(request: Request, body: SweepTestRequest):
         return _create_response(ResponseStatus.BAD_REQUEST, int(time.time() * 1000), body.prompt, [])
     
     except Exception as e:
-        ctx.log.error(f"[Sandbox] Sweep error: {str(e)}")
+        ctx.log.error(f"[Sandbox]     Sweep error: {str(e)}")
         return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, [])
 
 @router.post("/single")
@@ -75,6 +80,8 @@ async def single_llm_test(request: Request, body: LLMTestRequest):
     ctx = request.app.state.ctx
     service = SandboxService(ctx)
     
+    ctx.log.info(f"[API]     - /single LLM test requested | prompt={body.prompt[:30]}...")
+
     try:
         result = await service.run_single_llm_test(body)
         status = ResponseStatus.SUCCESS if not result.get("error") else {
@@ -86,7 +93,7 @@ async def single_llm_test(request: Request, body: LLMTestRequest):
         return _create_response(ResponseStatus.BAD_REQUEST, int(time.time() * 1000), body.prompt, {})
     
     except Exception as e:
-        ctx.log.error(f"[Sandbox] Single LLM test error: {str(e)}")
+        ctx.log.error(f"[Sandbox]     Single LLM test error: {str(e)}")
         return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, {})
 
 @router.post("/batch")
@@ -95,6 +102,8 @@ async def batch_llm_test(request: Request, body: LLMTestRequest):
     ctx = request.app.state.ctx
     service = SandboxService(ctx)
     
+    ctx.log.info(f"[API]     - /batch LLM test requested | prompt={body.prompt[:30]}...")
+
     try:
         result = await service.run_batch_llm_test(body)
         summary = result["summary"]
@@ -106,5 +115,5 @@ async def batch_llm_test(request: Request, body: LLMTestRequest):
         return _create_response(ResponseStatus.BAD_REQUEST, int(time.time() * 1000), body.prompt, {})
     
     except Exception as e:
-        ctx.log.error(f"[Sandbox] Batch LLM test error: {str(e)}")
+        ctx.log.error(f"[Sandbox]     Batch LLM test error: {str(e)}")
         return _create_response(ResponseStatus.SERVER_ERROR, int(time.time() * 1000), body.prompt, {})
