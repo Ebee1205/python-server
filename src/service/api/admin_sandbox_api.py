@@ -3,7 +3,7 @@ import time, uuid, orjson
 from service.scripts.admin_sandbox_service import (
     TransformRequest, LintRequest, SweepTestRequest, LLMTestRequest
 )
-from src.utils.redis_stream_utils import redis_stream_add, redis_stream_wait_result
+from src.utils.redis_stream_utils import redis_stream_add, redis_stream_find_result
 from src.common.common_codes import ResponseStatus
 
 router = APIRouter(prefix="/v1/admin/sandbox", tags=["Sandbox"])
@@ -27,7 +27,7 @@ async def _publish_task(ctx, type_: str, body: dict, prompt: str):
         "body": orjson.dumps(body)
     }
 
-    await redis_stream_add(ctx, "sandbox_task_stream", message)
+    await redis_stream_add(ctx, "ai_task_stream", message)
 
     ctx.log.info(f"[API]     >> Task Published: type={type_}, task_id={task_id}")
 
@@ -44,10 +44,9 @@ async def _publish_task(ctx, type_: str, body: dict, prompt: str):
 @router.get("/result/{task_id}")
 async def get_task_result(request: Request, task_id: str):
     ctx = request.app.state.ctx
-    stream = f"sandbox_result:{task_id}"
+    stream_key = "sandbox_result_stream"  # 하나의 스트림만 사용
 
-    # XREAD BLOCK 방식으로 결과 기다리기 (또는 XRANGE 조회만)
-    result = await redis_stream_wait_result(ctx, stream, timeout=10_000)
+    result = await redis_stream_find_result(ctx, stream_key, task_id)
 
     if result:
         return result
@@ -56,6 +55,7 @@ async def get_task_result(request: Request, task_id: str):
             "status": ResponseStatus.NOT_FOUND,
             "result": f"No result for task_id={task_id}"
         }
+
 
 
 @router.post("/lint")

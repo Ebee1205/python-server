@@ -11,6 +11,7 @@ import traceback
 import asyncio
 
 from src.app_context import AppContext
+from service.messaging.basic_ws import router as ws_basic_router
 from service.api.basic_api import router as basic_router
 from service.api.admin_sandbox_api import router as admin_sandbox_router
 
@@ -57,7 +58,8 @@ class AppFactory:
         
         # 설정 로드
         ctx.load_config("src/service/conf/py-server-local.cfg.json")
-        
+        ctx.load_json_map("event_map", "src/service/conf/ankoko-event-map.cfg.json")
+
         # CORS 설정
         AppFactory._setup_cors(app, ctx)
         
@@ -84,7 +86,8 @@ class AppFactory:
         """라우터 등록"""
         routers = [
             basic_router,
-            admin_sandbox_router
+            admin_sandbox_router,
+            ws_basic_router
         ]
         for router in routers:
             app.include_router(router)
@@ -103,7 +106,7 @@ class AppFactory:
             await AppFactory._setup_connections(ctx)
             
             ctx.log.info("     == Initialization complete")
-            
+
         except Exception as e:
             if hasattr(app.state, 'ctx') and hasattr(app.state.ctx, 'log'):
                 app.state.ctx.log.error(f"     -- Initialization error: {str(e)}")

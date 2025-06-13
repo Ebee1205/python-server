@@ -121,6 +121,23 @@ class AppContext:
 
         print("- end load cfg")
         self.cfg = AppConfig(**raw)
+        
+    def load_json_map(self, name: str, path: str):
+        """
+        임의의 JSON 파일을 로드하여 ctx에 동적으로 등록
+        예: ctx.load_json_map("event_map", "config/event_map.json")
+            → self.event_map 로 저장됨
+        """
+        try:
+            with open(path, "rb") as f:
+                data = orjson.loads(f.read())
+
+            setattr(self, name, data)
+            print(f"> loaded JSON map '{name}' from {path}")
+            return True
+        except Exception as e:
+            print(f"!! failed to load JSON map '{name}' from {path}: {e}")
+            return False
 
     def _init_logger(self):
         print("+ start init logger")
