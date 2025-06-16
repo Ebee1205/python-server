@@ -2,7 +2,7 @@
 # 'ws_' prefix
 
 import orjson
-from src.utils import redis_utils
+from utils import redis_basic_utils
 
 async def ws_send_response(ctx, sid: str, body: dict) -> bool:
     """
@@ -37,10 +37,10 @@ async def _backup_message_to_redis(ctx, sid: str, body: dict) -> bool:
     try:
         backup_key = f"chat:buffer:{sid}"
         message_data = orjson.dumps(body)
-        await redis_utils.redis_lpush(ctx, backup_key, message_data)
+        await redis_basic_utils.redis_lpush(ctx, backup_key, message_data)
         
         # TTL 설정 (예: 1시간)
-        await redis_utils.redis_expire(ctx, backup_key, 3600)
+        await redis_basic_utils.redis_expire(ctx, backup_key, 3600)
         
         ctx.log.info(f"[WS]     !! Backup message to Redis: {backup_key}")
         return True
