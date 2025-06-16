@@ -1,21 +1,46 @@
 {
   "Ankoko": {
     "redis": {
-      "chat-user":         { "stream_key": "ankoko:chat:stream",         "handler": "handlers.chat.ChatMessageHandler" },
-      "chat-ai":           { "stream_key": "ankoko:chat:stream",         "handler": "handlers.chat.AIMessageHandler" },
-      "test-ping":         { "stream_key": "ankoko:task:stream",         "handler": "src.service.scripts.ai_basic_service.handle_test_ping_rmq" }
+      "chat-user":   {
+        "stream_key": "ankoko:chat:stream",
+        "handler": "handlers.chat.ChatMessageHandler"
+      },
+      "chat-ai":     {
+        "stream_key": "ankoko:chat:stream",
+        "handler": "handlers.chat.AIMessageHandler"
+      },
+      "test-pong":   {
+        "stream_key": "ankoko:ai:stream",
+        "handler": "src.service.scripts.basic_service.handle_test_pong"
+      }
     }
   },
   "ankoko-ai-server": {
     "redis": {
-      "test-ping":         { "stream_key": "ankoko:task:stream",         "handler": "src.service.scripts.ai_basic_service.handle_test_ping_rmq" },
-      "test-pong":         { "stream_key": "ankoko:result:stream",       "handler": "src.service.scripts.basic_service.handle_test_pong_result" },
-      
-      "sandbox-lint":      { "stream_key": "ai_task_stream",             "handler": "src.service.scripts.admin_sandbox_service.handle_lint_event" },
-      "sandbox-transform": { "stream_key": "ai_task_stream",             "handler": "src.service.scripts.admin_sandbox_service.handle_transform_event" },
-      "sandbox-sweep":     { "stream_key": "ai_task_stream",             "handler": "src.service.scripts.admin_sandbox_service.handle_sweep_event" },
-      "sandbox-single":    { "stream_key": "ai_task_stream",             "handler": "src.service.scripts.rmq_basic_service.ping" },
-      "sandbox-batch":     { "stream_key": "ai_task_stream",             "handler": "src.service.scripts.admin_sandbox_service.handle_batch_event" }
+      "sandbox-lint": {
+        "stream_key": "ankoko:ai:stream",
+        "handler": "src.service.scripts.admin_sandbox_service.handle_lint_event"
+      },
+      "sandbox-transform": {
+        "stream_key": "ankoko:ai:stream",
+        "handler": "src.service.scripts.admin_sandbox_service.handle_transform_event"
+      },
+      "sandbox-sweep": {
+        "stream_key": "ankoko:ai:stream",
+        "handler": "src.service.scripts.admin_sandbox_service.handle_sweep_event"
+      },
+      "sandbox-single": {
+        "stream_key": "ankoko:ai:stream",
+        "handler": "src.service.scripts.admin_sandbox_service.handle_single_event"
+      },
+      "sandbox-batch": {
+        "stream_key": "ankoko:ai:stream",
+        "handler": "src.service.scripts.admin_sandbox_service.handle_batch_event"
+      },
+      "test-ping": {
+        "stream_key": "ankoko:ai:stream",
+        "handler": "src.service.scripts.ai_basic_service.handle_test_ping"
+      }
     }
   }
 }

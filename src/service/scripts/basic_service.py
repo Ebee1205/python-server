@@ -17,65 +17,38 @@ def ping(ctx):
 import time, orjson
 from src.utils.redis_stream_utils import redis_stream_add
 
-async def handle_test_ping(ctx, user_id: str):
+async def handle_test_ping(ctx, user_id):
     tid = str(int(time.time() * 1000))
-    stream_key = "ankoko:task:stream"
-    redis_result_key = f"result:{tid}"
-
-    message = {
+    ping_event = {
         "event": "test-ping",
         "tid": tid,
         "userId": user_id,
         "message": "ping"
     }
 
-    await redis_stream_add(ctx, stream_key, message)
-    ctx.log.info(f"[API]     >> Sent ping to Redis stream: {stream_key}")
+    await redis_stream_add(ctx, ctx.cfg.redis_consumer.stream_key, ping_event)
+    ctx.log.info(f"[API]     >> Sent ping to Redis stream: {ctx.cfg.redis_consumer.stream_key}")
 
-    # 응답 대기 TTL 설정
-    await ctx.redis_handler.client.expire(redis_result_key, 30)
-
+    # 결과 대기: 블로킹 pop으로 대기
+    result_key = f"result:{tid}"
     try:
-        result_data = await ctx.redis_handler.client.blpop(redis_result_key, timeout=10)
-
-        if result_data:
-            pong = orjson.loads(result_data[1])
-            return {
-                "status": "SUCCESS",
-                "tid": tid,
-                "pong_response": pong
-            }
-
-        return {
-            "status": "SUCCESS",
-            "tid": tid,
-            "pong_response": {"status": "timeout", "message": "AI 응답 없음"}
-        }
-
+        value = await ctx.redis_handler.client.blpop(result_key, timeout=10)
+        if value:
+            _, data = value
+            result = orjson.loads(data)
+            return result
+        else:
+            return {"error": "timeout"}
     except Exception as e:
-        ctx.log.error(f"[API]     >> Error waiting for pong: {e}")
-        return {
-            "status": "SUCCESS",
-            "tid": tid,
-            "pong_response": {"status": "error", "message": str(e)}
-        }
+        ctx.log.error(f"[API]     !! Error waiting for pong result: {e}")
+        return {"error": "exception", "details": str(e)}
     
-async def handle_test_pong_result(ctx, msg: dict):
-    """
-    test-pong 결과를 Redis에 저장 (BLPOP으로 API 응답 대기용)
-    """
-    try:
-        tid = msg.get("tid")
-        if not tid:
-            ctx.log.warning("[REDIS]    !! No TID in test-pong message")
-            return
-
-        result_key = f"result:{tid}"
-        result_json = orjson.dumps(msg)
-
-        await ctx.redis_handler.client.lpush(result_key, result_json)
-        await ctx.redis_handler.client.expire(result_key, 30)
-
-        ctx.log.info(f"[REDIS]    >> Pong result stored to Redis: {result_key}")
-    except Exception as e:
-        ctx.log.error(f"[REDIS]    -- Failed to process test-pong result: {e}")
+async def handle_test_pong(ctx, msg):
+    tid = msg.get("tid")
+    if not tid:
+        ctx.log.warning("[REDIS]    -- test-pong with no tid")
+        return
+    result_key = f"result:{tid}"
+    await ctx.redis_handler.client.rpush(result_key, orjson.dumps(msg))
+    await ctx.redis_handler.client.expire(result_key, 600)
+    ctx.log.info(f"[WEB]    << Stored test-pong result for tid={tid}")

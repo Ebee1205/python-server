@@ -3,17 +3,15 @@
 import orjson
 from src.utils.redis_stream_utils import redis_stream_add
 
-async def handle_test_ping_rmq(ctx, msg: dict):
-    tid = msg["tid"]
-    user_id = msg["userId"]
-    stream_key = "ankoko:result:stream"
-
-    response = {
+async def handle_test_ping(ctx, msg):
+    ctx.log.info(f"[AI]    -- Received test-ping | tid={msg.get('tid')}")
+    
+    pong_event = {
         "event": "test-pong",
-        "tid": tid,
-        "userId": user_id,
+        "tid": msg["tid"],
+        "userId": msg["userId"],
         "message": "pong"
     }
 
-    await redis_stream_add(ctx, stream_key, response)
-    ctx.log.info(f"[REDIS]    >> Sent pong response to stream: {stream_key}")
+    await redis_stream_add(ctx, ctx.cfg.redis_consumer.stream_key, pong_event)
+    ctx.log.info(f"[AI]    << Sent test-pong | tid={msg.get('tid')}")

@@ -13,10 +13,9 @@ async def dispatch_event(ctx, event, source_type, queue_name=None, **kwargs):
     project = ctx.cfg.project_name
     mapping = ctx.event_map.get(project, {}).get(source_type, {}).get(event)
 
-    # dispatch_event 내부
-
     if not mapping:
         ctx.log.warning(f"[{source_type.upper()}] - No handler for event '{event}'")
+        ctx.log.debug(f"[{source_type.upper()}] - Available events: {list(ctx.event_map.get(project, {}).get(source_type, {}).keys())}")
         return {"status": "error", "msg": f"No handler for event: {event}"}
 
     if queue_name and mapping.get("queue") and mapping["queue"] != queue_name:
@@ -26,12 +25,15 @@ async def dispatch_event(ctx, event, source_type, queue_name=None, **kwargs):
     handler_path = mapping["handler"]
     handler = load_handler(handler_path)
 
+    ctx.log.debug(f"[{source_type.upper()}] - Dispatching to handler: {handler_path}")
+
     if list(kwargs.keys()) == ["msg"]:
         return await handler(ctx, kwargs["msg"])
     elif list(kwargs.keys()) == ["websocket", "msg"]:
         return await handler(ctx, kwargs["websocket"], kwargs["msg"])
     else:
         return await handler(ctx, **kwargs)
+
 
 
 async def dispatch_redis_event(ctx, event: str, key: str, fields: dict) -> dict:

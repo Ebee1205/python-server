@@ -57,7 +57,7 @@
     },
 
     "redis_consumer": {
-      "stream_key": "ankoko:result:stream",
+      "stream_key": "ankoko:ai:stream",
       "group_name": "web-group",
       "consumer_name": "web-consumer-1"
     },
