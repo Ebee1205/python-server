@@ -123,7 +123,7 @@ class SandboxService:
             result_str = await chain.ainvoke({"input": request.prompt})
         except Exception as e:
             error = str(e)
-            self.log.error(f"[Sandbox] Single LLM test error: {error}")
+            self.log.error(f"[Sandbox]     Single LLM test error: {error}")
 
         metrics_model = self._create_performance_metrics(
             monitor, request.prompt, result_str
@@ -149,7 +149,7 @@ class SandboxService:
 
         results = []
         for i in range(request.iterations):
-            self.log.info(f"[Sandbox] Running batch test {i+1}/{request.iterations}")
+            self.log.info(f"[Sandbox]     Running batch test {i+1}/{request.iterations}")
             try:
                 single = await self.run_single_llm_test(request)
                 results.append(single)
@@ -179,7 +179,7 @@ class SandboxService:
 
         for combo in combos:
             params = dict(zip(keys, combo))
-            self.log.info(f"[Sandbox] Sweep test with params: {params}")
+            self.log.info(f"[Sandbox]     Sweep test with params: {params}")
 
             monitor = PerformanceMonitor()
             monitor.start_monitoring()
@@ -191,7 +191,7 @@ class SandboxService:
                 result_str = await chain.ainvoke({"input": prompt})
             except Exception as e:
                 error = str(e)
-                self.log.error(f"[Sandbox] Sweep test error: {error}")
+                self.log.error(f"[Sandbox]     Sweep test error: {error}")
 
             metrics_model = self._create_performance_metrics(monitor, prompt, result_str)
 

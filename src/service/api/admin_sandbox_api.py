@@ -32,7 +32,6 @@ async def _publish_task(ctx, request: Request, body: dict, prompt: str):
 
     stream_key = ctx.cfg.redis_consumer.stream_key
     await redis_stream_add(ctx, stream_key, message)
-    ctx.log.info(f"[API] >> Task Published: {event_type}, task_id={task_id}")
 
     # Redis 해시 TTL 설정
     await ctx.redis_handler.client.expire(f"result:{task_id}", 600)

@@ -113,6 +113,13 @@ class PythonServer:
             self.ctx.log.info("     -- Background tasks stopped")
 
         # 핸들러들 종료 (역순)
+        if hasattr(self, "redis_consumer") and self.redis_consumer:
+            try:
+                await self.redis_consumer.stop()
+                self.ctx.log.info("     -- RedisStreamConsumer stopped")
+            except Exception as e:
+                self.ctx.log.warning(f"     - RedisStreamConsumer stop failed: {e}")
+
         if self.ctx.redis_handler:
             try:
                 await self.ctx.redis_handler.disconnect()
