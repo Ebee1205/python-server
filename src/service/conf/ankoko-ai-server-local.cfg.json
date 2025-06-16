@@ -48,7 +48,10 @@
       "exchange": "my_exchange",
       "exchange_type": "direct",
       "queues": [
+        { "name": "ankoko-admin-to-algo", "type": "req" },
         { "name": "ankoko-to-algo", "type": "req"},
+
+        { "name": "ankoko-admin-from-algo", "type": "res" },
         { "name": "ankoko-from-algo", "type": "res" }
       ],
       "routing_key": "my.routing.key",

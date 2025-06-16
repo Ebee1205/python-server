@@ -14,7 +14,7 @@ from src.app_context import AppContext
 from service.messaging.basic_ws import router as ws_basic_router
 from service.api.basic_api import router as basic_router
 from service.api.admin_sandbox_api import router as admin_sandbox_router
-from src.modules.redis_keyevent_listener import start_keyevent_listener
+from modules.redis_keyevent_listener import start_keyevent_listener
 
 class AppFactory:
     """애플리케이션 팩토리 클래스"""
@@ -149,7 +149,9 @@ class AppFactory:
         
         # Redis 연결
         await ctx.redis_handler.connect()
-        asyncio.create_task(start_keyevent_listener(ctx))
+
+        # Redis key event
+        # asyncio.create_task(start_keyevent_listener(ctx))
 
         # TODO mqtt는 비동기로 안해도 괜찮은건가,,,
         # MQTT 연결 및 구독

@@ -3,14 +3,15 @@
     "redis": {
       "chat-user":          { "stream_key": "ankoko:chat:stream",          "handler": "handlers.chat.ChatMessageHandler" },
       "chat-ai":            { "stream_key": "ankoko:chat:stream",          "handler": "handlers.chat.AIMessageHandler" },
-      "sandbox-lint":       { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.lint_prompt" },
-      "sandbox-transform":  { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.transform_prompt" },
-      "sandbox-sweep":      { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.sweep_parameters" },
-      "sandbox-single":     { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.single_llm_test" },
-      "sandbox-batch":      { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.batch_llm_test" }
+      "sandbox-lint":       { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.handle_lint_event" },
+      "sandbox-transform":  { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.handle_transform_event" },
+      "sandbox-sweep":      { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.handle_sweep_event" },
+      "sandbox-single":     { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.rmq_basic_service.ping" },
+      "sandbox-batch":      { "stream_key": "ai_task_stream",      "handler": "src.service.scripts.admin_sandbox_service.handle_batch_event" }
     },
     "rmq": {
-      "chat-user":          { "queue": "ankoko-from-algo",                 "handler": "src.service.scripts.rmq_basic_service.ping" }
+      "chat-user":          { "queue": "ankoko-from-algo",          "handler": "src.service.scripts.rmq_basic_service.ping" },
+      "test-pong":          { "queue": "ankoko-from-algo",          "handler": "src.service.scripts.basic_service.handle_test_pong_result" }
     }
   },
 
@@ -20,7 +21,7 @@
       "ops-alert":          { "stream_key": "admin:ops:alert",            "handler": "handlers.ops.AlertHandler" }
     },
     "rmq": {
-      "ws-ping":            { "queue": "system-from-algo",                "handler": "handlers.ws.ws_ping" }
+      "test-ping":            { "queue": "ankoko-to-algo",                "handler": "src.service.scripts.ai_basic_service.handle_test_ping_rmq" }
     }
   }
 }

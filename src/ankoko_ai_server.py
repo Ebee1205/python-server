@@ -10,7 +10,7 @@ parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from src.app_context import AppContext
+from src.app_context import AppContext  
 
 class PythonServer:
     def __init__(self):
@@ -25,7 +25,8 @@ class PythonServer:
             
             # 설정 로드
             self.ctx.load_config("src/service/conf/ankoko-ai-server-local.cfg.json")
-            
+            self.ctx.load_json_map("event_map", "src/service/conf/ankoko-event-map.cfg.json")
+
             # logger 초기화
             self.ctx._init_logger()
             self.test_logging(self.ctx.log)

@@ -66,9 +66,7 @@
       "exchange_type": "direct",
       "queues": [
         { "name": "ankoko-admin-from-algo", "type": "req" },
-        { "name": "ankoko-admin-to-algo", "type": "req" },
         { "name": "ankoko-from-algo", "type": "req" },
-        { "name": "ankoko-to-algo", "type": "req" },
 
         { "name": "ankoko-to-algo", "type": "res" },
         { "name": "ankoko-admin-to-algo", "type": "res" }
