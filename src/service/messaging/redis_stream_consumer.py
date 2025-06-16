@@ -1,5 +1,6 @@
 from src.utils.event_dispatcher_utils import dispatch_event
 from redis.exceptions import ResponseError
+import asyncio
 
 class RedisStreamConsumer:
     def __init__(self, ctx):
@@ -23,7 +24,10 @@ class RedisStreamConsumer:
                 raise
 
     async def consume(self):
-        self.ctx.log.info(f"[REDIS]    >> Starting Redis stream consumer: group={self.group_name}on stream '{self.stream_key}', consumer={self.consumer_name}")
+        self.ctx.log.info(
+            f"[REDIS]    >> Starting Redis stream consumer: group={self.group_name} "
+            f"on stream '{self.stream_key}', consumer={self.consumer_name}"
+        )
         while True:
             try:
                 resp = await self.ctx.redis_handler.client.xreadgroup(
@@ -35,17 +39,26 @@ class RedisStreamConsumer:
                 )
 
                 if not resp:
-                    continue  # No new messages
+                    continue
 
                 for stream, messages in resp:
                     self.ctx.log.debug(f"[REDIS]    == Received {len(messages)} message(s) from stream '{stream}'")
                     for msg_id, fields in messages:
                         self.ctx.log.debug(f"[REDIS]    -- Handling message ID {msg_id} | fields={fields}")
-                        await self.handle_message(fields)
-                        await self.ctx.redis_handler.client.xack(self.stream_key, self.group_name, msg_id)
-                        self.ctx.log.debug(f"[REDIS]    -- Acknowledged message ID {msg_id}")
+                        # 메시지 처리를 비동기 태스크로 분리
+                        asyncio.create_task(self._process_message(msg_id, fields))
             except Exception as e:
                 self.ctx.log.error(f"[REDIS]    !! Error while consuming stream: {e}")
+
+    # 비동기 처리 분리 함수
+    async def _process_message(self, msg_id, fields):
+        try:
+            await self.handle_message(fields)
+            await self.ctx.redis_handler.client.xack(self.stream_key, self.group_name, msg_id)
+            self.ctx.log.debug(f"[REDIS]    -- Acknowledged message ID {msg_id}")
+        except Exception as e:
+            self.ctx.log.error(f"[REDIS]    !! Failed to process message {msg_id}: {e}")
+
 
     async def handle_message(self, fields: dict):
         event = fields.get("event")
