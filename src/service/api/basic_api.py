@@ -4,7 +4,7 @@
 from fastapi import APIRouter, Request
 
 import src.common.common_codes as codes
-from src.service.scripts import basic_service
+from service.scripts import basic_service
 from src.utils import rabbitmq_utils
 
 # 라우터 등록은 여기서 하고 실제 로직은 service에서 관리
@@ -32,7 +32,7 @@ async def publish_to_rmq(request: Request):
             }
 
 import time
-from src.service.scripts.basic_service import handle_test_ping
+from service.scripts.basic_service import handle_test_ping
 @router.post("/test-ping")
 async def redis_test_ping(request: Request):
     ctx = request.app.state.ctx
