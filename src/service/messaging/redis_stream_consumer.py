@@ -25,7 +25,7 @@ class RedisStreamConsumer:
                 consumername=self.consumer_name,
                 streams={self.stream_key: '>'},
                 count=1,
-                block=5000
+                block=1000
             )
 
             for stream, messages in resp:

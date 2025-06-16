@@ -31,10 +31,19 @@ async def publish_to_rmq(request: Request):
                 }
             }
 
+import time
 from src.service.scripts.basic_service import handle_test_ping
 @router.post("/test-ping")
 async def redis_test_ping(request: Request):
     ctx = request.app.state.ctx
     data = await request.json()
     user_id = data.get("userId", "test-user")
-    return await handle_test_ping(ctx, user_id)
+
+    start = time.time()
+    result = await handle_test_ping(ctx, user_id)
+    elapsed = time.time() - start
+
+    ctx.log.info(f"[API]     -- /test-ping 응답 시간: {elapsed:.3f}초")
+
+    result["elapsed_sec"] = round(elapsed, 3)
+    return result
