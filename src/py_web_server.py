@@ -151,7 +151,9 @@ class AppFactory:
         # Redis 연결
         await ctx.redis_handler.connect()
         await ctx.redis_consumer.init_group()
-        asyncio.create_task(ctx.redis_consumer.consume())
+        
+        ctx.redis_consumer_task = asyncio.create_task(ctx.redis_consumer.consume())
+        await asyncio.sleep(0)  # 태스크가 시작되도록 제어권 양보   
 
         # Redis key event
         # asyncio.create_task(start_keyevent_listener(ctx))

@@ -60,3 +60,18 @@ class RedisStreamConsumer:
             self.ctx.log.debug(f"[REDIS]    -- Acknowledged message ID {msg_id}")
         except Exception as e:
             self.ctx.log.error(f"[REDIS]    !! Failed to process message {msg_id}: {e}")
+
+    async def stop(self):
+        # 소비 루프 중단 및 Redis 연결 해제
+        self._running = False
+        if self._consume_task:
+            self._consume_task.cancel()
+            try:
+                await self._consume_task
+            except asyncio.CancelledError:
+                pass
+        try:
+            await self.ctx.redis_handler.client.close()
+            self.ctx.log.info(f"[REDIS]    >> Connection closed for '{self.stream_key}'")
+        except Exception as e:
+            self.ctx.log.error(f"[REDIS]    !! Error closing connection: {e}")

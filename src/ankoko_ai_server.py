@@ -46,9 +46,12 @@ class PythonServer:
             # 연결 시작
             await self.ctx.rmq_handler.connect()
             await self.ctx.rmq_handler.consume_multi()
+
             await self.ctx.redis_handler.connect()
             await self.ctx.redis_consumer.init_group()
-            asyncio.create_task(self.ctx.redis_consumer.consume())
+
+            self.ctx.redis_consumer_task = asyncio.create_task(self.ctx.redis_consumer.consume())
+            await asyncio.sleep(0)  # 태스크가 시작되도록 제어권 양보
 
             self.ctx.log.info("     == Initialization complete")
             self.running = True
