@@ -2,6 +2,8 @@ from src.utils.event_dispatcher_utils import dispatch_event
 from redis.exceptions import ResponseError
 import asyncio
 
+from src.service.messaging.redis_stream_processor import processor
+
 class RedisStreamConsumer:
     def __init__(self, ctx):
         self.ctx = ctx
@@ -53,17 +55,8 @@ class RedisStreamConsumer:
     # 비동기 처리 분리 함수
     async def _process_message(self, msg_id, fields):
         try:
-            await self.handle_message(fields)
+            await processor(self.ctx, fields)
             await self.ctx.redis_handler.client.xack(self.stream_key, self.group_name, msg_id)
             self.ctx.log.debug(f"[REDIS]    -- Acknowledged message ID {msg_id}")
         except Exception as e:
             self.ctx.log.error(f"[REDIS]    !! Failed to process message {msg_id}: {e}")
-
-
-    async def handle_message(self, fields: dict):
-        event = fields.get("event")
-        if not event:
-            self.ctx.log.warning("[REDIS]    -- No 'event' field found in message, skipping")
-            return
-        self.ctx.log.info(f"[REDIS]    >> Dispatching event '{event}' with fields: {fields}")
-        await dispatch_event(ctx=self.ctx, event=event, source_type="redis", msg=fields)

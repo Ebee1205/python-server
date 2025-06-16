@@ -9,7 +9,7 @@ import src.modules.py_logger as py_logger
 from src.modules.system_monitor import SystemMonitor
 from src.handlers.websocket_handler import WebSocketHandler
 from src.handlers.redis_handler import RedisHandler
-from src.service.messaging.redis_stream_consumer import RedisStreamConsumer
+from src.handlers.redis_stream_consumer import RedisStreamConsumer
 from src.handlers.rabbitmq_handler import RabbitMQHandler
 from src.handlers.mqtt_handler import MQTTHandler
 
