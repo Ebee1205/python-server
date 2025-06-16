@@ -45,7 +45,6 @@ class LLMTestRequest(BaseModel):
     temperature: Optional[float] = 0.7
     config: Optional[Dict[str, Any]] = {}
 
-
 class PerformanceMonitor:
     """성능 모니터링을 위한 클래스"""
     
@@ -84,14 +83,10 @@ class SandboxService:
         """프롬프트 린트 검사"""
         issues = []
         
-        # 기본 검사 규칙들
         if len(prompt) < 10:
             issues.append("프롬프트 길이가 너무 짧음")
-            
         if any(p in prompt.lower() for p in ["hi", "hello", "안녕"]):
             issues.append("일반적인 인삿말 포함")
-            
-        # 추가 검사 규칙들을 여기에 확장 가능
         if not prompt.strip():
             issues.append("빈 프롬프트")
             
@@ -107,9 +102,10 @@ class SandboxService:
     def transform_prompt(self, prompt: str, transform_type: str, analysis_type: Optional[str] = None) -> str:
         """프롬프트 변환"""
         if transform_type == "wrap_in_instruction" and analysis_type:
-            return f"You are a helpful assistant. Please {analysis_type} the following text:\n\n{prompt}"
-        
-        # 다른 변환 타입들을 여기에 추가 가능
+            return (
+                f"You are a helpful assistant. Please {analysis_type} "
+                f"the following text:\n\n{prompt}"
+            )
         return prompt
 
     async def run_single_llm_test(self, request: LLMTestRequest) -> Dict[str, Any]:
@@ -129,16 +125,13 @@ class SandboxService:
             error = str(e)
             self.log.error(f"[Sandbox] Single LLM test error: {error}")
 
-        # PerformanceModel 인스턴스 생성
         metrics_model = self._create_performance_metrics(
             monitor, request.prompt, result_str
         )
-        # ModelInfo 인스턴스 생성
         model_info_model = ModelInfo(manager="ops", provider="ollama")
 
         return {
             "output": result_str if not error else "",
-            # .dict()로 풀어서 순수 dict/primitive만 남김
             "metrics": metrics_model.dict(),
             "model_info": model_info_model.dict(),
             "config": {
@@ -161,7 +154,6 @@ class SandboxService:
                 single = await self.run_single_llm_test(request)
                 results.append(single)
             except Exception as e:
-                # 에러 발생 시에도 dict 형태로 반환
                 results.append({
                     "output": "",
                     "metrics": None,
@@ -185,8 +177,10 @@ class SandboxService:
         combos = list(itertools.product(*[sweep_params[k] for k in keys]))
         results = []
 
-        for params in combos:
-            self.log.info(f"[Sandbox] Sweep test with params: {dict(zip(keys, params))}")
+        for combo in combos:
+            params = dict(zip(keys, combo))
+            self.log.info(f"[Sandbox] Sweep test with params: {params}")
+
             monitor = PerformanceMonitor()
             monitor.start_monitoring()
 
@@ -202,18 +196,23 @@ class SandboxService:
             metrics_model = self._create_performance_metrics(monitor, prompt, result_str)
 
             results.append({
-                "params": dict(zip(keys, params)),
+                "params": params,
                 "metrics": metrics_model.dict(),
                 "error": error
             })
 
         return results
 
-    def _create_performance_metrics(self, monitor: PerformanceMonitor, prompt: str, result: str) -> PerformanceModel:
+    def _create_performance_metrics(
+        self, 
+        monitor: PerformanceMonitor, 
+        prompt: str, 
+        result: str
+    ) -> PerformanceModel:
         """성능 메트릭 생성"""
         metrics_raw = monitor.stop_monitoring()
-        token_count = (len(prompt) + len(result)) // 4  # 대략적인 토큰 수 계산
-        
+        token_count = (len(prompt) + len(result)) // 4
+
         response_time_s = metrics_raw["response_time"] / 1000
         tps = token_count / response_time_s if response_time_s > 0 else 0
 
@@ -232,25 +231,28 @@ class SandboxService:
         successes = sum(1 for r in results if not r.get("error"))
         fails = total - successes
 
-        # 성공한 결과들만으로 평균 계산
-        successful_results = [r for r in results if not r.get("error") and r["metrics"]]
-        
+        successful_results = [
+            r for r in results
+            if not r.get("error") and isinstance(r.get("metrics"), dict)
+        ]
+
         if successful_results:
+            count = len(successful_results)
             avg_metrics = {
                 "response_time": round(
-                    sum(r["metrics"].response_time for r in successful_results) / len(successful_results), 3
+                    sum(r["metrics"]["response_time"] for r in successful_results) / count, 3
                 ),
                 "memory_usage": round(
-                    sum(r["metrics"].memory_usage for r in successful_results) / len(successful_results), 3
+                    sum(r["metrics"]["memory_usage"] for r in successful_results) / count, 3
                 ),
                 "cpu_usage": round(
-                    sum(r["metrics"].cpu_usage for r in successful_results) / len(successful_results), 3
+                    sum(r["metrics"]["cpu_usage"] for r in successful_results) / count, 3
                 ),
                 "token_count": int(
-                    sum(r["metrics"].token_count for r in successful_results) / len(successful_results)
+                    sum(r["metrics"]["token_count"] for r in successful_results) / count
                 ),
                 "throughput_tps": round(
-                    sum(r["metrics"].throughput_tps for r in successful_results) / len(successful_results), 2
+                    sum(r["metrics"]["throughput_tps"] for r in successful_results) / count, 2
                 )
             }
         else:
