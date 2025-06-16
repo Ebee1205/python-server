@@ -37,6 +37,7 @@ class PythonServer:
             # 핸들러 초기화
             self.ctx._init_websocket()
             self.ctx._init_redis()
+            self.ctx._init_redis_consumer()
             self.ctx._init_rmq()
 
             # 알고리즘 초기화
@@ -46,6 +47,8 @@ class PythonServer:
             await self.ctx.rmq_handler.connect()
             await self.ctx.rmq_handler.consume_multi()
             await self.ctx.redis_handler.connect()
+            await self.ctx.redis_consumer.init_group()
+            asyncio.create_task(self.ctx.redis_consumer.consume())
 
             self.ctx.log.info("     == Initialization complete")
             self.running = True

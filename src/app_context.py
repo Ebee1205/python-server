@@ -9,6 +9,7 @@ import src.modules.py_logger as py_logger
 from src.modules.system_monitor import SystemMonitor
 from src.handlers.websocket_handler import WebSocketHandler
 from src.handlers.redis_handler import RedisHandler
+from src.service.messaging.redis_stream_consumer import RedisStreamConsumer
 from src.handlers.rabbitmq_handler import RabbitMQHandler
 from src.handlers.mqtt_handler import MQTTHandler
 
@@ -35,6 +36,11 @@ class RedisConfig(BaseModel):
     port: int
     db: int
     password: Optional[str] = None
+
+class RedisConsumerConfig(BaseModel):
+    stream_key: str
+    group_name: str
+    consumer_name: str
 
 class RMQConfig(BaseModel):
     host: str
@@ -83,6 +89,7 @@ class AppConfig(BaseModel):
     http_config: HTTPConfig
     mysql: MySQLConfig
     redis: RedisConfig
+    redis_consumer: RedisConsumerConfig
     rmq: RMQConfig
     mqtt: MQTTConfig
 
@@ -103,6 +110,7 @@ class AppContext:
         self.ws_handler = None
         self.db_handler = None
         self.redis_handler = None
+        self.redis_consumer = None
         self.rmq_handler = None
         self.mqtt_handler = None
 
@@ -172,6 +180,14 @@ class AppContext:
         self.redis_handler = RedisHandler(self)
 
         self.log.debug("- end init Redis")
+        
+    def _init_redis_consumer(self):
+        self.log.debug("+ start init RedisStreamConsumer")
+
+        self.redis_consumer = RedisStreamConsumer(self)
+        
+        self.log.debug("- end init RedisStreamConsumer")
+
 
     def _init_rmq(self):
         self.log.debug("+ start init RabbitMQ")

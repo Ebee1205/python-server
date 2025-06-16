@@ -131,6 +131,7 @@ class AppFactory:
         ctx.log.info("     - Initializing handlers...")
         ctx._init_websocket()
         ctx._init_redis()
+        ctx._init_redis_consumer()
         ctx._init_rmq()
         ctx._init_mqtt()
         
@@ -149,6 +150,8 @@ class AppFactory:
         
         # Redis 연결
         await ctx.redis_handler.connect()
+        await ctx.redis_consumer.init_group()
+        asyncio.create_task(ctx.redis_consumer.consume())
 
         # Redis key event
         # asyncio.create_task(start_keyevent_listener(ctx))

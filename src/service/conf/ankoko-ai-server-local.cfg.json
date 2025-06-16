@@ -16,6 +16,23 @@
         "rotation": "daily",
         "use_console": true
     },
+
+    "llm": {
+      "models": {
+        "default": {
+          "provider": "ollama",
+          "model": "llama3.2"
+        },
+        "analyze": {
+          "provider": "ollama",
+          "model": "llama3.2"
+        },
+        "ops": {
+          "provider": "ollama",
+          "model": "llama3.2"
+        }
+      }
+    },
     
     "http_config": {
       "allow_origins": ["http://localhost:3000"],
@@ -39,6 +56,12 @@
       "password": null
     },
 
+    "redis_consumer": {
+      "stream_key": "ankoko:result:stream",
+      "group_name": "web-group",
+      "consumer_name": "web-consumer-1"
+    },
+    
     "rmq": {
       "host": "localhost",
       "port": 5672,

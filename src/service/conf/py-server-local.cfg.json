@@ -55,6 +55,12 @@
       "db": 0,
       "password": null
     },
+    
+    "redis_consumer": {
+      "stream_key": "ankoko:task:stream",
+      "group_name": "ai-group",
+      "consumer_name": "ai-consumer-1"
+    },
 
     "rmq": {
       "host": "localhost",

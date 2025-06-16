@@ -14,30 +14,25 @@ def ping(ctx):
         "tid": tid
     }
 
-from src.utils.rabbitmq_utils import rmq_send_response
+import time, orjson
+from src.utils.redis_stream_utils import redis_stream_add
 
 async def handle_test_ping(ctx, user_id: str):
     tid = str(int(time.time() * 1000))
-    request_queue = "ankoko-to-algo"
-    response_queue = "ankoko-from-algo"
+    stream_key = "ankoko:task:stream"
     redis_result_key = f"result:{tid}"
 
     message = {
-        "hd": {
-            "event": "test-ping",
-            "tid": tid,
-            "userId": user_id
-        },
-        "dt": {
-            "message": "ping"
-        }
+        "event": "test-ping",
+        "tid": tid,
+        "userId": user_id,
+        "message": "ping"
     }
 
+    await redis_stream_add(ctx, stream_key, message)
+    ctx.log.info(f"[API]     >> Sent ping to Redis stream: {stream_key}")
 
-    await rmq_send_response(ctx, request_queue, message)
-    ctx.log.info(f"[API]     >> Sent ping to {request_queue}")
-
-    # 응답 Redis 키 생성 후 대기
+    # 응답 대기 TTL 설정
     await ctx.redis_handler.client.expire(redis_result_key, 30)
 
     try:
@@ -64,30 +59,23 @@ async def handle_test_ping(ctx, user_id: str):
             "tid": tid,
             "pong_response": {"status": "error", "message": str(e)}
         }
-
+    
 async def handle_test_pong_result(ctx, msg: dict):
     """
-    test-pong 이벤트에 대한 결과 메시지를 처리하고 Redis에 저장합니다.
-    Redis Key: result:{tid}
+    test-pong 결과를 Redis에 저장 (BLPOP으로 API 응답 대기용)
     """
     try:
-        hd = msg.get("hd", {})
-        dt = msg.get("dt", {})
-
-        tid = hd.get("tid")
+        tid = msg.get("tid")
         if not tid:
-            ctx.log.warning("[RMQ]     !! No TID in pong message")
+            ctx.log.warning("[REDIS]    !! No TID in test-pong message")
             return
 
         result_key = f"result:{tid}"
-        result_json = orjson.dumps(dt)
+        result_json = orjson.dumps(msg)
 
-        # 추후 Redis TTL만 걸고 대기하는 구조가 아닌 WebSocket 등의 Push로 응답 처리하는 방식으로 변경 시 삭제 가능
-        # test-pong 수신 후
         await ctx.redis_handler.client.lpush(result_key, result_json)
-        await ctx.redis_handler.client.expire(result_key, 30)  # 여기서 TTL 설정
+        await ctx.redis_handler.client.expire(result_key, 30)
 
-        ctx.log.info(f"[RMQ]     >> Pong result stored to Redis: {result_key}")
-
+        ctx.log.info(f"[REDIS]    >> Pong result stored to Redis: {result_key}")
     except Exception as e:
-        ctx.log.error(f"[RMQ]     -- Failed to process test-pong: {e}")
+        ctx.log.error(f"[REDIS]    -- Failed to process test-pong result: {e}")
