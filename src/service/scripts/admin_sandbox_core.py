@@ -1,275 +1,240 @@
 import time
 import itertools
 from datetime import datetime
-
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 
 import psutil
+import pynvml
+
+def camelize(string: str) -> str:
+    parts = string.split('_')
+    return parts[0] + ''.join(word.capitalize() for word in parts[1:])
 
 class StatusModel(BaseModel):
     code: str
     msg: Optional[str] = None
 
+    class Config:
+        alias_generator = camelize
+        validate_by_name = True
+        populate_by_name = True
+
 class PerformanceModel(BaseModel):
-    response_time: float
-    memory_usage: float
-    cpu_usage: float
-    token_count: int
-    throughput_tps: float
-    timestamp: str
+    # 성능 메트릭
+    resp_time: float            # 응답 시간 (ms)
+    mem_usage: float            # 메모리 사용량 (MB)
+    cpu_usage: float            # CPU 사용률 (%)
+    gpu_usage: float            # GPU 사용률 (%)
+
+    # 토큰 정보
+    in_tokens: int              # 입력 토큰 수
+    out_tokens: int             # 출력 토큰 수
+    tot_tokens: int             # 총 토큰 수
+
+    # 요청 메타데이터
+    max_tokens: int             # max_tokens 설정 값
+    temp: float                 # temperature 설정 값
+    concurrent_req: int    # 동시 요청 수
+
+    # 타임스탬프
+    s_date: str                 # 모니터링 시작 시각
+    e_date: str                 # 모니터링 종료 시각
+    tps_tokens: float       # 초당 처리 토큰 수
+
+    class Config:
+        alias_generator = camelize
+        validate_by_name = True
+        populate_by_name = True
 
 class ModelInfo(BaseModel):
     manager: str
     provider: str
+
+    class Config:
+        alias_generator = camelize
+        validate_by_name = True
+        populate_by_name = True
 
 class TransformRequest(BaseModel):
     event: str
     analysis_type: Optional[str] = None
     prompt: str
 
+    class Config:
+        alias_generator = camelize
+        validate_by_name = True
+        populate_by_name = True
+
 class LintRequest(BaseModel):
     prompt: str
+
+    class Config:
+        alias_generator = camelize
+        validate_by_name = True
+        populate_by_name = True
 
 class SweepTestRequest(BaseModel):
     prompt: str
     sweep: Dict[str, List[Any]]
 
+    class Config:
+        alias_generator = camelize
+        validate_by_name = True
+        populate_by_name = True
+
 class LLMTestRequest(BaseModel):
     prompt: str
-    analysis_type: str = "sentiment"
-    model: str = "llama"
+    analysis_type: str = 'sentiment'
+    model: str = 'llama'
     iterations: int = 1
-    concurrent: int = 1
-    max_tokens: Optional[int] = 1000
-    temperature: Optional[float] = 0.7
+    concurrent_req: int = 1
+    max_tokens: int = 1000
+    temp: float = 0.7
     config: Optional[Dict[str, Any]] = {}
 
+    class Config:
+        alias_generator = camelize
+        validate_by_name = True
+        populate_by_name = True
+
 class PerformanceMonitor:
-    """성능 모니터링을 위한 클래스"""
-    
     def __init__(self):
+        pynvml.nvmlInit()
         self.start_time = None
         self.initial_memory = None
+        self.s_date = None
 
     def start_monitoring(self):
-        """모니터링 시작"""
         self.start_time = time.time()
-        self.initial_memory = psutil.virtual_memory().used / 1024 / 1024
+        self.s_date = datetime.now().isoformat()
+        self.initial_memory = psutil.virtual_memory().used / (1024 * 1024)
 
-    def stop_monitoring(self) -> Dict[str, float]:
-        """모니터링 중지 및 결과 반환"""
+    def stop_monitoring(self) -> dict:
         if self.start_time is None:
-            raise RuntimeError("Monitoring not started")
-            
+            raise RuntimeError('Monitoring not started')
         end_time = time.time()
-        final_memory = psutil.virtual_memory().used / 1024 / 1024
-        
+        e_date = datetime.now().isoformat()
+        final_mem = psutil.virtual_memory().used / (1024 * 1024)
+        handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        util = pynvml.nvmlDeviceGetUtilizationRates(handle)
         return {
-            "response_time": (end_time - self.start_time) * 1000,
-            "memory_usage": final_memory - self.initial_memory,
-            "cpu_usage": psutil.cpu_percent(interval=None),
-            "timestamp": datetime.now().isoformat()
+            'resp_time': (end_time - self.start_time) * 1000,
+            'mem_usage': final_mem - self.initial_memory,
+            'cpu_usage': psutil.cpu_percent(interval=None),
+            'gpu_usage': util.gpu,
+            's_date': self.s_date,
+            'e_date': e_date
         }
 
 class SandboxService:
-    """샌드박스 관련 비즈니스 로직을 처리하는 서비스"""
-    
     def __init__(self, ctx):
         self.ctx = ctx
         self.log = ctx.log
 
     def lint_prompt(self, prompt: str) -> Dict[str, Any]:
-        """프롬프트 린트 검사"""
         issues = []
-        
         if len(prompt) < 10:
-            issues.append("프롬프트 길이가 너무 짧음")
-        if any(p in prompt.lower() for p in ["hi", "hello", "안녕"]):
-            issues.append("일반적인 인삿말 포함")
+            issues.append('too short')
+        if any(g in prompt.lower() for g in ['hi', 'hello', '안녕']):
+            issues.append('greeting included')
         if not prompt.strip():
-            issues.append("빈 프롬프트")
-            
+            issues.append('empty prompt')
         score = max(0, 100 - len(issues) * 20)
-        suggestion = "좀 더 구체적인 맥락을 포함해주세요." if issues else "OK"
-        
-        return {
-            "issues": issues,
-            "score": score,
-            "suggestion": suggestion
-        }
+        suggestion = 'add more context' if issues else 'OK'
+        return {'issues': issues, 'score': score, 'suggestion': suggestion}
 
-    def transform_prompt(self, prompt: str, transform_type: str, analysis_type: Optional[str] = None) -> str:
-        """프롬프트 변환"""
-        if transform_type == "wrap_in_instruction" and analysis_type:
-            return (
-                f"You are a helpful assistant. Please {analysis_type} "
-                f"the following text:\n\n{prompt}"
-            )
+    def transform_prompt(self, prompt: str, mode: str, analysis_type: Optional[str] = None) -> str:
+        if mode == 'wrap_in_instruction' and analysis_type:
+            return f'You are an assistant. Please {analysis_type}: {prompt}'
         return prompt
 
-    async def run_single_llm_test(self, request: LLMTestRequest) -> Dict[str, Any]:
-        llm = self.ctx.llm_manager.get("ops")
+    async def run_single(self, req: LLMTestRequest) -> Dict[str, Any]:
+        llm = self.ctx.llm_manager.get('ops')
         if not llm:
-            raise ValueError("LLM manager 'ops' not found")
-
+            raise ValueError("LLM manager 'ops' missing")
         monitor = PerformanceMonitor()
         monitor.start_monitoring()
-
-        result_str = ""
-        error = None
+        out, err = '', None
         try:
             chain = llm.get_chain()
-            result_str = await chain.ainvoke({"input": request.prompt})
+            out = await chain.ainvoke({'input': req.prompt})
         except Exception as e:
-            error = str(e)
-            self.log.error(f"[Sandbox]     Single LLM test error: {error}")
-
-        metrics_model = self._create_performance_metrics(
-            monitor, request.prompt, result_str
+            err = str(e)
+            self.log.error(f'error: {err}')
+        raw = monitor.stop_monitoring()
+        in_tok = len(req.prompt) // 4
+        out_tok = len(out) // 4
+        tot_tok = in_tok + out_tok
+        dur_sec = raw['resp_time'] / 1000
+        tps = tot_tok / dur_sec if dur_sec > 0 else 0
+        metrics = PerformanceModel(
+            **raw,
+            in_tokens=in_tok,
+            out_tokens=out_tok,
+            tot_tokens=tot_tok,
+            max_tokens=req.max_tokens,
+            temp=req.temp,
+            concurrent_req=req.concurrent_req,
+            tps_tokens=round(tps, 2)
         )
-        model_info_model = ModelInfo(manager="ops", provider="ollama")
-
         return {
-            "output": result_str if not error else "",
-            "metrics": metrics_model.dict(),
-            "model_info": model_info_model.dict(),
-            "config": {
-                "max_tokens": request.max_tokens,
-                "temperature": request.temperature,
-                **(request.config or {})
+            'output': out if not err else '',
+            'metrics': metrics.dict(by_alias=True),
+            'config': {
+                'maxTokens': req.max_tokens,
+                'temp': req.temp,
+                'concurrentReq': req.concurrent_req
             },
-            "error": error
+            'error': err
         }
 
-    async def run_batch_llm_test(self, request: LLMTestRequest) -> Dict[str, Any]:
-        llm = self.ctx.llm_manager.get("ops")
-        if not llm:
-            raise ValueError("LLM manager 'ops' not found")
-
+    async def run_batch(self, req: LLMTestRequest) -> Dict[str, Any]:
         results = []
-        for i in range(request.iterations):
-            self.log.info(f"[Sandbox]     Running batch test {i+1}/{request.iterations}")
-            try:
-                single = await self.run_single_llm_test(request)
-                results.append(single)
-            except Exception as e:
-                results.append({
-                    "output": "",
-                    "metrics": None,
-                    "model_info": ModelInfo(manager="ops", provider="ollama").dict(),
-                    "config": {
-                        "max_tokens": request.max_tokens,
-                        "temperature": request.temperature,
-                        **(request.config or {})
-                    },
-                    "error": str(e)
-                })
+        for i in range(req.iterations):
+            self.log.info(f'batch {i+1}/{req.iterations}')
+            res = await self.run_single(req)
+            results.append(res)
+        total = len(results)
+        succ = sum(1 for r in results if not r.get('error'))
+        ok = [r for r in results if not r.get('error')]
+        avg = {}
+        if ok:
+            count = len(ok)
+            avg = {k: round(sum(r['metrics'][k] for r in ok)/count, 3) for k in ['responseTime','memoryUsage','cpuUsage','throughputTps']}
+            avg['totalTokens'] = int(sum(r['metrics']['totalTokens'] for r in ok)/count)
+        return {'summary': {'total': total, 'successful': succ, 'failed': total-succ, 'average': avg}, 'individual': results}
 
-        return self._create_batch_summary(results)
-
-    async def run_sweep_test(self, prompt: str, sweep_params: Dict[str, List[Any]]) -> List[Dict[str, Any]]:
-        llm = self.ctx.llm_manager.get("ops")
-        if not llm:
-            raise ValueError("LLM manager 'ops' not found")
-
-        keys = list(sweep_params.keys())
-        combos = list(itertools.product(*[sweep_params[k] for k in keys]))
-        results = []
-
-        for combo in combos:
-            params = dict(zip(keys, combo))
-            self.log.info(f"[Sandbox]     Sweep test with params: {params}")
-
+    async def run_sweep(self, req: SweepTestRequest) -> List[Dict[str, Any]]:
+        llm = self.ctx.llm_manager.get('ops')
+        combos = list(itertools.product(*req.sweep.values()))
+        out = []
+        for params in combos:
+            pmap = dict(zip(req.sweep.keys(), params))
+            self.log.info(f'sweep {pmap}')
             monitor = PerformanceMonitor()
             monitor.start_monitoring()
-
-            result_str = ""
-            error = None
+            res_str, err = '', None
             try:
                 chain = llm.get_chain()
-                result_str = await chain.ainvoke({"input": prompt})
+                res_str = await chain.ainvoke({'input': req.prompt})
             except Exception as e:
-                error = str(e)
-                self.log.error(f"[Sandbox]     Sweep test error: {error}")
-
-            metrics_model = self._create_performance_metrics(monitor, prompt, result_str)
-
-            results.append({
-                "params": params,
-                "metrics": metrics_model.dict(),
-                "error": error
-            })
-
-        return results
-
-    def _create_performance_metrics(
-        self, 
-        monitor: PerformanceMonitor, 
-        prompt: str, 
-        result: str
-    ) -> PerformanceModel:
-        """성능 메트릭 생성"""
-        metrics_raw = monitor.stop_monitoring()
-        token_count = (len(prompt) + len(result)) // 4
-
-        response_time_s = metrics_raw["response_time"] / 1000
-        tps = token_count / response_time_s if response_time_s > 0 else 0
-
-        return PerformanceModel(
-            response_time=round(metrics_raw["response_time"], 3),
-            memory_usage=round(metrics_raw["memory_usage"], 3),
-            cpu_usage=metrics_raw["cpu_usage"],
-            token_count=token_count,
-            throughput_tps=round(tps, 2),
-            timestamp=metrics_raw["timestamp"]
-        )
-
-    def _create_batch_summary(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """배치 테스트 결과 요약 생성"""
-        total = len(results)
-        successes = sum(1 for r in results if not r.get("error"))
-        fails = total - successes
-
-        successful_results = [
-            r for r in results
-            if not r.get("error") and isinstance(r.get("metrics"), dict)
-        ]
-
-        if successful_results:
-            count = len(successful_results)
-            avg_metrics = {
-                "response_time": round(
-                    sum(r["metrics"]["response_time"] for r in successful_results) / count, 3
-                ),
-                "memory_usage": round(
-                    sum(r["metrics"]["memory_usage"] for r in successful_results) / count, 3
-                ),
-                "cpu_usage": round(
-                    sum(r["metrics"]["cpu_usage"] for r in successful_results) / count, 3
-                ),
-                "token_count": int(
-                    sum(r["metrics"]["token_count"] for r in successful_results) / count
-                ),
-                "throughput_tps": round(
-                    sum(r["metrics"]["throughput_tps"] for r in successful_results) / count, 2
-                )
-            }
-        else:
-            avg_metrics = {
-                "response_time": 0,
-                "memory_usage": 0,
-                "cpu_usage": 0,
-                "token_count": 0,
-                "throughput_tps": 0
-            }
-
-        return {
-            "summary": {
-                "total": total,
-                "successful": successes,
-                "failed": fails,
-                "average_metrics": avg_metrics
-            },
-            "individual_results": results
-        }
+                err = str(e)
+            raw = monitor.stop_monitoring()
+            in_tok = len(req.prompt)//4
+            out_tok = len(res_str)//4
+            tot_tok = in_tok+out_tok
+            dur = raw['resp_time']/1000
+            tps = tot_tok/dur if dur>0 else 0
+            metrics = PerformanceModel(
+                **raw,
+                in_tokens=in_tok,
+                out_tokens=out_tok,
+                tot_tokens=tot_tok,
+                max_tokens=raw.get('max_tokens', 0),
+                temp=raw.get('temp', 0.0),
+                concurrent_req=raw.get('concurrent_req', 0),
+                tps_tokens=round(tps, 2)
+            )
+            out.append({'params': pmap, 'metrics': metrics.dict(by_alias=True), 'error': err})
+        return out

@@ -18,7 +18,7 @@ async def push_result_event(
     payload: dict[str, any] = {
         "event": "sandbox-result",
         "tid": tid,
-        "task_id": task_id,
+        "taskId": task_id,
         "status": status,
     }
 
@@ -57,7 +57,7 @@ async def push_result_event(
         error_payload = {
             "event": "sandbox-result",
             "tid": tid,
-            "task_id": task_id,
+            "taskId": task_id,
             "status": "error",
             "message": err_msg,
         }
@@ -102,7 +102,7 @@ async def handle_sweep_event(ctx, fields):
         body = orjson.loads(fields.get("body", b"{}"))
         request = SweepTestRequest(**body)
         service = SandboxService(ctx)
-        result = await service.run_sweep_test(request.prompt, request.sweep)
+        result = await service.run_sweep(request.prompt, request.sweep)
         await push_result_event(ctx, task_id, result)
     except Exception as e:
         await push_result_event(ctx, task_id, None, status="error", message=str(e))
@@ -114,7 +114,7 @@ async def handle_single_event(ctx, fields):
         body = orjson.loads(fields.get("body", b"{}"))
         request = LLMTestRequest(**body)
         service = SandboxService(ctx)
-        result = await service.run_single_llm_test(request)
+        result = await service.run_single(request)
         await push_result_event(ctx, task_id, result)
     except Exception as e:
         ctx.log.error(f"[Sandbox]     -- Single test handler error: {e}\n{traceback.format_exc()}")
@@ -127,7 +127,7 @@ async def handle_batch_event(ctx, fields):
         body = orjson.loads(fields.get("body", b"{}"))
         request = LLMTestRequest(**body)
         service = SandboxService(ctx)
-        result = await service.run_batch_llm_test(request)
+        result = await service.run_batch(request)
         await push_result_event(ctx, task_id, result)
     except Exception as e:
         await push_result_event(ctx, task_id, None, status="error", message=str(e))
