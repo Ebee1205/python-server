@@ -34,8 +34,8 @@ class PerformanceModel(BaseModel):
 
     # 요청 메타데이터
     max_tokens: int             # max_tokens 설정 값
-    temp: float                 # temperature 설정 값
-    concurrent_req: int    # 동시 요청 수
+    temp: float                 # temp 설정 값
+    concur_req: int             # 동시 요청 수
 
     # 타임스탬프
     s_date: str                 # 모니터링 시작 시각
@@ -85,18 +85,20 @@ class SweepTestRequest(BaseModel):
 
 class LLMTestRequest(BaseModel):
     prompt: str
-    analysis_type: str = 'sentiment'
-    model: str = 'llama'
+    analysis_type: str = "sentiment"
+    model: str = "llama"
     iterations: int = 1
-    concurrent_req: int = 1
+    concur_req: int = 1
     max_tokens: int = 1000
     temp: float = 0.7
-    config: Optional[Dict[str, Any]] = {}
+    cfg: Optional[Dict[str, Any]] = {}
 
     class Config:
+        # snake_case → camelCase alias 자동 생성
         alias_generator = camelize
-        validate_by_name = True
+        # 외부에서 camelCase로 들어와도 내부 name(python attr)로 매핑 허용
         populate_by_name = True
+        validate_by_name = True
 
 class PerformanceMonitor:
     def __init__(self):
@@ -175,16 +177,16 @@ class SandboxService:
             tot_tokens=tot_tok,
             max_tokens=req.max_tokens,
             temp=req.temp,
-            concurrent_req=req.concurrent_req,
+            concur_req=req.concur_req,
             tps_tokens=round(tps, 2)
         )
         return {
             'output': out if not err else '',
             'metrics': metrics.dict(by_alias=True),
-            'config': {
+            'cfg': {
                 'maxTokens': req.max_tokens,
                 'temp': req.temp,
-                'concurrentReq': req.concurrent_req
+                'concurReq': req.concur_req
             },
             'error': err
         }
@@ -233,7 +235,7 @@ class SandboxService:
                 tot_tokens=tot_tok,
                 max_tokens=raw.get('max_tokens', 0),
                 temp=raw.get('temp', 0.0),
-                concurrent_req=raw.get('concurrent_req', 0),
+                concur_req=raw.get('concur_req', 0),
                 tps_tokens=round(tps, 2)
             )
             out.append({'params': pmap, 'metrics': metrics.dict(by_alias=True), 'error': err})

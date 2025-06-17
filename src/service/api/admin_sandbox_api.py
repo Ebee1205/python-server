@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Request, HTTPException
 import time, uuid, orjson
-from src.utils.redis_hash_utils import redis_hset_multi
+from src.common.id_generator import generate_task_id
 from src.utils.redis_stream_utils import redis_stream_add
 from src.service.scripts.admin_sandbox_core import (
     LintRequest, TransformRequest, SweepTestRequest, LLMTestRequest
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/v1/admin/sandbox", tags=["Sandbox"])
 
 # 공통 핸들러
 async def _publish_task(ctx, request: Request, body: dict, prompt: str):
-    task_id = str(uuid.uuid4())
+    task_id = generate_task_id()
     tid = str(int(time.time() * 1000))
 
     # 이벤트명 추출
