@@ -130,6 +130,7 @@ class AppFactory:
         """핸들러 초기화"""    
         ctx.log.info("     - Initializing handlers...")
         ctx._init_websocket()
+        ctx._init_firebase()
         ctx._init_redis()
         ctx._init_redis_consumer()
         ctx._init_rmq()
@@ -147,6 +148,9 @@ class AppFactory:
         # RabbitMQ 연결
         await ctx.rmq_handler.connect()
         await ctx.rmq_handler.consume_multi()
+        
+        # Firebase 연결
+        await ctx.fb_handler.connect()
         
         # Redis 연결
         await ctx.redis_handler.connect()
@@ -179,6 +183,14 @@ class AppFactory:
                 ctx.log.info("     -- RedisStreamConsumer stopped")
             except Exception as e:
                 ctx.log.warning(f"     - RedisStreamConsumer stop failed: {e}")
+
+        # Firebase 종료
+        if ctx.fb_handler:
+            try:
+                await ctx.fb_handler.disconnect()
+                ctx.log.info("     -- Firebase handler closed")
+            except Exception as e:
+                ctx.log.warning(f"     - Firebase close failed: {e}")
 
         if ctx.redis_handler:
             try:

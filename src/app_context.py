@@ -12,6 +12,7 @@ from src.handlers.redis_handler import RedisHandler
 from src.handlers.redis_stream_consumer import RedisStreamConsumer
 from src.handlers.rabbitmq_handler import RabbitMQHandler
 from src.handlers.mqtt_handler import MQTTHandler
+from src.handlers.firebase_handler import FirebaseHandler
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -30,6 +31,13 @@ class MySQLConfig(BaseModel):
     user: str
     password: str
     db: str
+
+class FirebaseConfig(BaseModel):
+    project_id: str
+    service_account_path: Optional[str] = None
+    use_admin_sdk: Optional[bool] = True
+    database_url: Optional[str] = None
+    storage_bucket: Optional[str] = None
 
 class RedisConfig(BaseModel):
     host: str
@@ -87,6 +95,7 @@ class AppConfig(BaseModel):
     # 구성 요소들
     logger: LoggerConfig
     http_config: HTTPConfig
+    firebase: FirebaseConfig
     mysql: MySQLConfig
     redis: RedisConfig
     redis_consumer: RedisConsumerConfig
@@ -109,6 +118,7 @@ class AppContext:
         # 핸들러
         self.ws_handler = None
         self.db_handler = None
+        self.fb_handler = None
         self.redis_handler = None
         self.redis_consumer = None
         self.rmq_handler = None
@@ -174,6 +184,13 @@ class AppContext:
 
         self.log.debug("- end init websocket")
 
+    def _init_firebase(self):
+        self.log.debug("+ start init Firebase")
+
+        self.fb_handler = FirebaseHandler(self)
+
+        self.log.debug("- end init Firebase")
+
     def _init_redis(self):
         self.log.debug("+ start init Redis")
 
@@ -187,7 +204,6 @@ class AppContext:
         self.redis_consumer = RedisStreamConsumer(self)
         
         self.log.debug("- end init RedisStreamConsumer")
-
 
     def _init_rmq(self):
         self.log.debug("+ start init RabbitMQ")

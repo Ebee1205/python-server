@@ -41,6 +41,14 @@
         "use_console": true
     },
 
+    "firebase": {
+      "project_id": "your-firebase-project-id",
+      "service_account_path": "./config/firebase-service-account.json",
+      "use_admin_sdk": true,
+      "database_url": "https://your-firebase-project-id-default-rtdb.firebaseio.com/",
+      "storage_bucket": "your-firebase-project-id.appspot.com"
+    },
+    
     "mysql": {
       "host": "localhost",
       "port": 3306,
