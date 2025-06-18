@@ -8,7 +8,7 @@ async def handle_test_ping(ctx, msg):
     pong_event = {
         "event": "test-pong",
         "tid": msg["tid"],
-        "userId": msg["userId"],
+        "user_id": msg["user_id"],
         "message": "pong"
     }
 

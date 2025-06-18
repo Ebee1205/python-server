@@ -22,7 +22,7 @@ async def handle_test_ping(ctx, user_id):
     ping_event = {
         "event": "test-ping",
         "tid": tid,
-        "userId": user_id,
+        "user_id": user_id,
         "message": "ping"
     }
 

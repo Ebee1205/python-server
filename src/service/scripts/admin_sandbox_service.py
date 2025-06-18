@@ -18,7 +18,7 @@ async def push_result_event(
     payload: dict[str, any] = {
         "event": "sandbox-result",
         "tid": tid,
-        "taskId": task_id,
+        "task_id": task_id,
         "status": status,
     }
 
@@ -57,7 +57,7 @@ async def push_result_event(
         error_payload = {
             "event": "sandbox-result",
             "tid": tid,
-            "taskId": task_id,
+            "task_id": task_id,
             "status": "error",
             "message": err_msg,
         }
@@ -131,3 +131,4 @@ async def handle_batch_event(ctx, fields):
         await push_result_event(ctx, task_id, result)
     except Exception as e:
         await push_result_event(ctx, task_id, None, status="error", message=str(e))
+

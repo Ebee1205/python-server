@@ -39,8 +39,7 @@ async def _publish_task(ctx, request: Request, body: dict, prompt: str):
     # 즉시 응답
     return {
         "status": "PENDING",
-        "task_id": task_id,
-        "message": f"결과는 /result/{task_id} 에서 조회하세요."
+        "task_id": task_id
     }
 
 @router.get("/result")

@@ -7,22 +7,17 @@ from typing import Optional, Dict, Any, List
 import psutil
 import pynvml
 
-def camelize(string: str) -> str:
-    parts = string.split('_')
-    return parts[0] + ''.join(word.capitalize() for word in parts[1:])
-
 class StatusModel(BaseModel):
     code: str
     msg: Optional[str] = None
 
     class Config:
-        alias_generator = camelize
         validate_by_name = True
         populate_by_name = True
 
 class PerformanceModel(BaseModel):
     # 성능 메트릭
-    resp_time: float            # 응답 시간 (ms)
+    res_time: float            # 응답 시간 (ms)
     mem_usage: float            # 메모리 사용량 (MB)
     cpu_usage: float            # CPU 사용률 (%)
     gpu_usage: float            # GPU 사용률 (%)
@@ -43,7 +38,6 @@ class PerformanceModel(BaseModel):
     tps_tokens: float       # 초당 처리 토큰 수
 
     class Config:
-        alias_generator = camelize
         validate_by_name = True
         populate_by_name = True
 
@@ -52,7 +46,6 @@ class ModelInfo(BaseModel):
     provider: str
 
     class Config:
-        alias_generator = camelize
         validate_by_name = True
         populate_by_name = True
 
@@ -62,7 +55,6 @@ class TransformRequest(BaseModel):
     prompt: str
 
     class Config:
-        alias_generator = camelize
         validate_by_name = True
         populate_by_name = True
 
@@ -70,7 +62,6 @@ class LintRequest(BaseModel):
     prompt: str
 
     class Config:
-        alias_generator = camelize
         validate_by_name = True
         populate_by_name = True
 
@@ -79,7 +70,6 @@ class SweepTestRequest(BaseModel):
     sweep: Dict[str, List[Any]]
 
     class Config:
-        alias_generator = camelize
         validate_by_name = True
         populate_by_name = True
 
@@ -94,8 +84,6 @@ class LLMTestRequest(BaseModel):
     cfg: Optional[Dict[str, Any]] = {}
 
     class Config:
-        # snake_case → camelCase alias 자동 생성
-        alias_generator = camelize
         # 외부에서 camelCase로 들어와도 내부 name(python attr)로 매핑 허용
         populate_by_name = True
         validate_by_name = True
@@ -121,7 +109,7 @@ class PerformanceMonitor:
         handle = pynvml.nvmlDeviceGetHandleByIndex(0)
         util = pynvml.nvmlDeviceGetUtilizationRates(handle)
         return {
-            'resp_time': (end_time - self.start_time) * 1000,
+            'res_time': (end_time - self.start_time) * 1000,
             'mem_usage': final_mem - self.initial_memory,
             'cpu_usage': psutil.cpu_percent(interval=None),
             'gpu_usage': util.gpu,
@@ -168,7 +156,7 @@ class SandboxService:
         in_tok = len(req.prompt) // 4
         out_tok = len(out) // 4
         tot_tok = in_tok + out_tok
-        dur_sec = raw['resp_time'] / 1000
+        dur_sec = raw['res_time'] / 1000
         tps = tot_tok / dur_sec if dur_sec > 0 else 0
         metrics = PerformanceModel(
             **raw,
@@ -184,9 +172,9 @@ class SandboxService:
             'output': out if not err else '',
             'metrics': metrics.dict(by_alias=True),
             'cfg': {
-                'maxTokens': req.max_tokens,
+                'max_tokens': req.max_tokens,
                 'temp': req.temp,
-                'concurReq': req.concur_req
+                'concur_req': req.concur_req
             },
             'error': err
         }
@@ -203,8 +191,8 @@ class SandboxService:
         avg = {}
         if ok:
             count = len(ok)
-            avg = {k: round(sum(r['metrics'][k] for r in ok)/count, 3) for k in ['responseTime','memoryUsage','cpuUsage','throughputTps']}
-            avg['totalTokens'] = int(sum(r['metrics']['totalTokens'] for r in ok)/count)
+            avg = {k: round(sum(r['metrics'][k] for r in ok)/count, 3) for k in ['res_time','mem_usage','cpu_usage','tps_tokens']}
+            avg['tot_tokens'] = int(sum(r['metrics']['tot_tokens'] for r in ok)/count)
         return {'summary': {'total': total, 'successful': succ, 'failed': total-succ, 'average': avg}, 'individual': results}
 
     async def run_sweep(self, req: SweepTestRequest) -> List[Dict[str, Any]]:
@@ -226,7 +214,7 @@ class SandboxService:
             in_tok = len(req.prompt)//4
             out_tok = len(res_str)//4
             tot_tok = in_tok+out_tok
-            dur = raw['resp_time']/1000
+            dur = raw['res_time']/1000
             tps = tot_tok/dur if dur>0 else 0
             metrics = PerformanceModel(
                 **raw,

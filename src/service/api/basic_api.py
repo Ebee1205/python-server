@@ -37,7 +37,7 @@ from service.scripts.basic_service import handle_test_ping
 async def redis_test_ping(request: Request):
     ctx = request.app.state.ctx
     data = await request.json()
-    user_id = data.get("userId", "test-user")
+    user_id = data.get("user_id", "test-user")
 
     start = time.time()
     result = await handle_test_ping(ctx, user_id)
