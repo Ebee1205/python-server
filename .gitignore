@@ -18,3 +18,4 @@ __pycache__/
 # # IDE/에디터 관련 (선택)
 # .vscode/
 # .idea/
+*.gguf
