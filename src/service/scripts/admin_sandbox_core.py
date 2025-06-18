@@ -192,7 +192,15 @@ class SandboxService:
             count = len(ok)
             avg = {k: round(sum(r['metrics'][k] for r in ok)/count, 3) for k in ['res_time','mem_usage','cpu_usage','tps_tokens']}
             avg['tot_tokens'] = int(sum(r['metrics']['tot_tokens'] for r in ok)/count)
-        return {'summary': {'total': total, 'successful': succ, 'failed': total-succ, 'average': avg}, 'individual': results}
+        return {
+                'summary': {
+                    'total': total, 
+                    'successful': succ, 
+                    'failed': total-succ, 
+                    'average': avg
+                }, 
+                'list': results
+            }
 
     async def run_sweep(self, req: SweepTestRequest) -> List[Dict[str, Any]]:
         llm = self.ctx.llm_manager.get('ops')

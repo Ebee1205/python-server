@@ -51,17 +51,29 @@ async def get_result_by_query(task_id: str, request: Request):
     if not data:
         raise HTTPException(status_code=404, detail="Result not found")
 
-    # Redis가 str을 반환하면 decode 없이 처리
-    result = {
-        k if isinstance(k, str) else k.decode(): orjson.loads(v) if (k == "output" or (isinstance(k, bytes) and k.decode() == "output")) else v if isinstance(v, str) else v.decode()
-        for k, v in data.items()
-    }
+    decoded = {}
+    for raw_k, raw_v in data.items():
+        # 1) 키는 bytes일 수 있으니 str로 디코딩
+        k = raw_k.decode() if isinstance(raw_k, bytes) else raw_k
 
-    # # 결과 반환 후 삭제
-    # await ctx.redis_handler.client.delete(key)
-    # ctx.log.info(f"[API] >> Result consumed and deleted: {key}")
+        # 2) 값도 bytes일 수 있으니 str로 변환
+        if isinstance(raw_v, bytes):
+            v_str = raw_v.decode()
+        else:
+            v_str = raw_v
 
-    return result
+        # 3) "result" 필드(혹은 output 필드)는 JSON으로 파싱
+        if k in {"result", "output"}:
+            try:
+                decoded[k] = orjson.loads(v_str)
+            except orjson.JSONDecodeError:
+                # 혹시 파싱 실패 시 원본 문자열 그대로
+                decoded[k] = v_str
+        else:
+            decoded[k] = v_str
+
+    return decoded
+
 
 
 # 라우팅
