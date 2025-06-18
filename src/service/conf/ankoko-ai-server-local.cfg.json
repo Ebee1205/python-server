@@ -21,7 +21,7 @@
       "models": {
         "default": {
           "provider": "ollama",
-          "model": "llama3.2"
+          "model": "bllossom-3b"
         },
         "analyze": {
           "provider": "ollama",
