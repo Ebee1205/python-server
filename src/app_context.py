@@ -94,13 +94,13 @@ class AppConfig(BaseModel):
 
     # 구성 요소들
     logger: LoggerConfig
-    http_config: HTTPConfig
-    firebase: FirebaseConfig
-    mysql: MySQLConfig
-    redis: RedisConfig
-    redis_consumer: RedisConsumerConfig
-    rmq: RMQConfig
-    mqtt: MQTTConfig
+    http_config: Optional[HTTPConfig] = None
+    firebase: Optional[FirebaseConfig] = None
+    mysql: Optional[MySQLConfig] = None
+    redis: Optional[RedisConfig] = None
+    redis_consumer: Optional[RedisConsumerConfig] = None
+    rmq: Optional[RMQConfig] = None
+    mqtt: Optional[MQTTConfig] = None
 
     # 시스템 모니터링 관련 기본값 설정
     enable_monitoring: Optional[bool] = True
