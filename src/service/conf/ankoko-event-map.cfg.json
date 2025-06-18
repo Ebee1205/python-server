@@ -19,23 +19,23 @@
     "redis": {
       "sandbox-lint": {
         "stream_key": "ankoko:ai:stream",
-        "handler": "src.service.scripts.admin_sandbox_service.handle_lint_event"
+        "handler": "src.service.scripts.admin_sandbox_run_llm.handle_lint_event"
       },
       "sandbox-transform": {
         "stream_key": "ankoko:ai:stream",
-        "handler": "src.service.scripts.admin_sandbox_service.handle_transform_event"
+        "handler": "src.service.scripts.admin_sandbox_run_llm.handle_transform_event"
       },
       "sandbox-sweep": {
         "stream_key": "ankoko:ai:stream",
-        "handler": "src.service.scripts.admin_sandbox_service.handle_sweep_event"
+        "handler": "src.service.scripts.admin_sandbox_run_llm.handle_sweep_event"
       },
       "sandbox-single": {
         "stream_key": "ankoko:ai:stream",
-        "handler": "src.service.scripts.admin_sandbox_service.handle_single_event"
+        "handler": "src.service.scripts.admin_sandbox_run_llm.handle_single_event"
       },
       "sandbox-batch": {
         "stream_key": "ankoko:ai:stream",
-        "handler": "src.service.scripts.admin_sandbox_service.handle_batch_event"
+        "handler": "src.service.scripts.admin_sandbox_run_llm.handle_batch_event"
       },
       "test-ping": {
         "stream_key": "ankoko:ai:stream",

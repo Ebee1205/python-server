@@ -1,13 +1,11 @@
 # src/routes/admin_sandbox_api.py
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request
 from typing import Dict, Any
 import time, orjson
 from src.common.id_generator import generate_task_id
 from src.utils.redis_stream_utils import redis_stream_add
-from src.service.scripts.admin_sandbox_core import (
-    LintRequest, TransformRequest, SweepTestRequest, LLMTestRequest
-)
+from src.service.scripts.admin_sandbox_schemas import LLMTestRequest, SweepTestRequest, TransformRequest, LintRequest
 
 router = APIRouter(prefix="/v1/admin/sandbox", tags=["Sandbox"])
 
@@ -62,47 +60,43 @@ async def single_test(request: Request, body: LLMTestRequest):
 async def batch_test(request: Request, body: LLMTestRequest):
     return await _publish_task(request.app.state.ctx, request, body.model_dump(), body.prompt)
 
-# 실행 결과 조회: 요청(req) + 결과(res) 함께 반환
 @router.get("/result")
 async def get_result_by_query(task_id: str, request: Request):
     ctx = request.app.state.ctx
     key = f"result:{task_id}"
     data = await ctx.redis_handler.client.hgetall(key)
+
     if not data:
-        # 결과가 더 이상 없을 때
-        return {
-            "status": "NO_RESULT",
-            "message": f"No result available for task {task_id}"
-        }
+        return {"message": "결과가 없습니다."}
 
     decoded: Dict[str, Any] = {}
     for raw_k, raw_v in data.items():
         k = raw_k.decode() if isinstance(raw_k, bytes) else raw_k
-        v_str = raw_v.decode() if isinstance(raw_v, bytes) else raw_v
-        # JSON 필드(req, result, output)는 파싱
-        if k in {"req", "result", "output"}:
+        v = raw_v.decode() if isinstance(raw_v, bytes) else raw_v
+        if k in {"req", "result", "output", "feedback"}:
             try:
-                decoded[k] = orjson.loads(v_str)
+                decoded[k] = orjson.loads(v)
             except orjson.JSONDecodeError:
-                decoded[k] = v_str
+                decoded[k] = v
         else:
-            decoded[k] = v_str
+            decoded[k] = v
 
-    # 결과가 저장되지 않았을 때 (req만 있는 경우)
-    if not decoded.get("result") and not decoded.get("output"):
-        return {
-            "status": "NO_RESULT",
-            "task_id": decoded.get("task_id"),
-            "req": decoded.get("req"),
-            "message": f"Result pending for task {task_id}"
-        }
+    # 필수 요청 정보 없으면 오류
+    if "req" not in decoded:
+        return {"message": "결과가 없습니다."}
 
-    # 응답 구조: 요청(req)와 서비스 결과(res)를 함께 반환
+    # 결과가 아직 없는 경우
+    if "result" not in decoded and "output" not in decoded:
+        return {"message": "결과가 없습니다."}
+
+    result_data = decoded.get("result") or decoded.get("output")
+
     return {
-        "status": decoded.get("status"),
+        "status": decoded.get("status", "success"),
         "tid": decoded.get("tid"),
-        "event": decoded.get("event"),
-        "task_id": decoded.get("task_id"),
-        "req": decoded.get("req"),
-        "res": decoded.get("result") or decoded.get("output")
+        "event": decoded.get("event", "sandbox-result"),
+        "task_id": decoded.get("task_id", task_id),
+        "req": decoded["req"],
+        "res": result_data,
+        "feedback": decoded.get("feedback")  # Optional
     }

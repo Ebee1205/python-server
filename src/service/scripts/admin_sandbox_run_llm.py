@@ -1,6 +1,7 @@
 # src/service/scripts/admin_sandbox_service.py
 
-from src.service.scripts.admin_sandbox_core import SandboxService, LintRequest, TransformRequest, SweepTestRequest, LLMTestRequest
+from src.service.scripts.admin_sandbox_core import SandboxService
+from src.service.scripts.admin_sandbox_schemas import LLMTestRequest, SweepTestRequest, TransformRequest
 import orjson, time, traceback
 from pydantic import BaseModel
 
@@ -23,24 +24,20 @@ async def push_result_event(
     }
 
     if status == "success":
-        # Pydantic 모델이면 dict로 풀어서
         if isinstance(result, BaseModel):
             result = result.model_dump()
         payload["result"] = result
     else:
         payload["message"] = message or "error"
 
-    # Redis 해시용으로 직렬화
     encoded = {}
     for k, v in payload.items():
-        # 이미 문자열이면 그대로, 아니면 JSON bytes
         if isinstance(v, str):
             encoded[k] = v
         else:
             encoded[k] = orjson.dumps(v)
 
     try:
-        # 해시 저장 & TTL 10분
         key = f"result:{task_id}"
         await ctx.redis_handler.client.hset(key, mapping=encoded)
         await ctx.redis_handler.client.expire(key, 600)
@@ -48,12 +45,10 @@ async def push_result_event(
         ctx.log.info(f"[Sandbox]     >> Result: {key} ({status})")
 
     except Exception as e:
-        # 에러 저장
         err_msg = str(e)
         tb = traceback.format_exc()
         ctx.log.error(f"[Sandbox]     !! Failed to push result for {task_id}: {err_msg}\n{tb}")
 
-        # 실패 상태로 덮어쓰기
         error_payload = {
             "event": "sandbox-result",
             "tid": tid,
@@ -61,14 +56,11 @@ async def push_result_event(
             "status": "error",
             "message": err_msg,
         }
-        # 문자열만 들어가도록 보장
         await ctx.redis_handler.client.hset(
             f"result:{task_id}", 
             mapping={k: str(v) for k, v in error_payload.items()}
         )
         await ctx.redis_handler.client.expire(f"result:{task_id}", 600)
-
-        # 필요 시 호출 스택을 상위로 전달
         raise
 
 # 단일 핸들러들
@@ -90,8 +82,15 @@ async def handle_transform_event(ctx, fields):
         body = orjson.loads(fields.get("body", b"{}"))
         request = TransformRequest(**body)
         service = SandboxService(ctx)
-        transformed = service.transform_prompt(request.prompt, transform_type="wrap_in_instruction", analysis_type=request.analysis_type)
-        await push_result_event(ctx, task_id, {"original": request.prompt, "transformed": transformed})
+        transformed = service.transform_prompt(
+            request.prompt,
+            transform_type="wrap_in_instruction",
+            analysis_type=request.analysis_type
+        )
+        await push_result_event(ctx, task_id, {
+            "original": request.prompt,
+            "transformed": transformed
+        })
     except Exception as e:
         await push_result_event(ctx, task_id, None, status="error", message=str(e))
 
@@ -102,7 +101,7 @@ async def handle_sweep_event(ctx, fields):
         body = orjson.loads(fields.get("body", b"{}"))
         request = SweepTestRequest(**body)
         service = SandboxService(ctx)
-        result = await service.run_sweep(request.prompt, request.sweep)
+        result = await service.run_sweep(request)
         await push_result_event(ctx, task_id, result)
     except Exception as e:
         await push_result_event(ctx, task_id, None, status="error", message=str(e))
@@ -115,7 +114,7 @@ async def handle_single_event(ctx, fields):
         request = LLMTestRequest(**body)
         service = SandboxService(ctx)
         result = await service.run_single(request)
-        await push_result_event(ctx, task_id, result)
+        await push_result_event(ctx, task_id, result.res)  # result → result.res
     except Exception as e:
         ctx.log.error(f"[Sandbox]     -- Single test handler error: {e}\n{traceback.format_exc()}")
         await push_result_event(ctx, task_id, None, status="error", message=str(e))
@@ -128,7 +127,12 @@ async def handle_batch_event(ctx, fields):
         request = LLMTestRequest(**body)
         service = SandboxService(ctx)
         result = await service.run_batch(request)
+
+        # 각 DocumentModel → result.res만 추출하여 전송
+        for i, doc in enumerate(result["list"]):
+            if isinstance(doc, dict) and "res" in doc:
+                result["list"][i] = doc["res"]
+
         await push_result_event(ctx, task_id, result)
     except Exception as e:
         await push_result_event(ctx, task_id, None, status="error", message=str(e))
-
