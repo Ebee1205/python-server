@@ -26,7 +26,7 @@ async def push_result_event(
         # Pydantic 모델이면 dict로 풀어서
         if isinstance(result, BaseModel):
             result = result.model_dump()
-        payload["output"] = result
+        payload["result"] = result
     else:
         payload["message"] = message or "error"
 

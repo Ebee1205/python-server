@@ -1,6 +1,5 @@
 import time
 import itertools
-from datetime import datetime
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 
@@ -33,8 +32,8 @@ class PerformanceModel(BaseModel):
     concur_req: int             # 동시 요청 수
 
     # 타임스탬프
-    s_date: str                 # 모니터링 시작 시각
-    e_date: str                 # 모니터링 종료 시각
+    s_date: int                 # 모니터링 시작 시각
+    e_date: int                 # 모니터링 종료 시각
     tps_tokens: float       # 초당 처리 토큰 수
 
     class Config:
@@ -97,14 +96,14 @@ class PerformanceMonitor:
 
     def start_monitoring(self):
         self.start_time = time.time()
-        self.s_date = datetime.now().isoformat()
+        self.s_date = int(time.time() * 1000)
         self.initial_memory = psutil.virtual_memory().used / (1024 * 1024)
 
     def stop_monitoring(self) -> dict:
         if self.start_time is None:
             raise RuntimeError('Monitoring not started')
         end_time = time.time()
-        e_date = datetime.now().isoformat()
+        e_date = int(time.time() * 1000)
         final_mem = psutil.virtual_memory().used / (1024 * 1024)
         handle = pynvml.nvmlDeviceGetHandleByIndex(0)
         util = pynvml.nvmlDeviceGetUtilizationRates(handle)
@@ -193,7 +192,15 @@ class SandboxService:
             count = len(ok)
             avg = {k: round(sum(r['metrics'][k] for r in ok)/count, 3) for k in ['res_time','mem_usage','cpu_usage','tps_tokens']}
             avg['tot_tokens'] = int(sum(r['metrics']['tot_tokens'] for r in ok)/count)
-        return {'summary': {'total': total, 'successful': succ, 'failed': total-succ, 'average': avg}, 'individual': results}
+        return {
+                'summary': {
+                    'total': total, 
+                    'successful': succ, 
+                    'failed': total-succ, 
+                    'average': avg
+                }, 
+                'list': results
+            }
 
     async def run_sweep(self, req: SweepTestRequest) -> List[Dict[str, Any]]:
         llm = self.ctx.llm_manager.get('ops')
