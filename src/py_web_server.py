@@ -151,8 +151,8 @@ class AppFactory:
         await ctx.rmq_handler.connect()
         await ctx.rmq_handler.consume_multi()
         
-        # Firebase 연결
-        # await ctx.fb_handler.connect()
+        # Firebase 연결(동기식)
+        ctx.fb_handler.connect()
         
         # Redis 연결
         await ctx.redis_handler.connect()

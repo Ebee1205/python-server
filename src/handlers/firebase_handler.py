@@ -1,5 +1,3 @@
-# handler/firebase_handler.py
-
 import os
 from google.cloud import firestore
 from google.auth.exceptions import DefaultCredentialsError
@@ -23,13 +21,14 @@ class FirebaseHandler:
         """
         Firebase Firestore에 연결합니다.
         서비스 계정 키 파일 또는 환경 변수를 통해 인증합니다.
+        연결된 Firebase 프로젝트 ID를 로그에 명시합니다.
         """
         try:
             if self.client:
-                self.log.info("[DB-firebase]     == Already connected")
+                self.log.info(f"[DB-firebase]     == Already connected to project '{self.cfg.project_id}'")
                 return
 
-            self.log.debug("[DB-firebase]     - Connecting...")
+            self.log.debug("[DB-firebase]     - Connecting to Firebase project: %s", self.cfg.project_id)
             
             # Firebase Admin SDK 초기화
             if not firebase_admin._apps:
@@ -40,7 +39,7 @@ class FirebaseHandler:
                         self._app = firebase_admin.initialize_app(cred, {
                             'projectId': self.cfg.project_id
                         })
-                        self.log.debug("[DB-firebase]     - Using service account key file")
+                        self.log.debug("[DB-firebase]     - Using service account key file: %s", self.cfg.service_account_path)
                     else:
                         self.log.error(f"[DB-firebase]     -- Service account file not found: {self.cfg.service_account_path}")
                         raise FileNotFoundError(f"Service account file not found: {self.cfg.service_account_path}")
@@ -50,6 +49,7 @@ class FirebaseHandler:
                     self.log.debug("[DB-firebase]     - Using default credentials")
             else:
                 self._app = firebase_admin.get_app()
+                self.log.debug("[DB-firebase]     - Firebase app already initialized: %s", self._app.name)
 
             # Firestore 클라이언트 생성
             if self.cfg.use_admin_sdk:
@@ -59,7 +59,6 @@ class FirebaseHandler:
                 # Google Cloud Firestore 클라이언트 사용
                 if self.cfg.service_account_path and os.path.exists(self.cfg.service_account_path):
                     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = self.cfg.service_account_path
-                
                 self.client = firestore.Client(project=self.cfg.project_id)
 
             # 연결 테스트
@@ -67,10 +66,10 @@ class FirebaseHandler:
             test_doc = test_collection.document('test')
             test_doc.set({'timestamp': firestore.SERVER_TIMESTAMP})
             
-            self.log.info("[DB-firebase]     == Connected successfully")
+            self.log.info(f"[DB-firebase]     == Connected successfully to project '{self.cfg.project_id}'")
 
         except (DefaultCredentialsError, GoogleCloudError, Exception) as e:
-            self.log.error(f"[DB-firebase]     -- Connection error: {str(e)}")
+            self.log.error(f"[DB-firebase]     -- Connection error for project '{self.cfg.project_id}': {str(e)}")
             raise
 
     def get_client(self) -> firestore.Client:
@@ -78,7 +77,7 @@ class FirebaseHandler:
         Firestore 클라이언트를 반환합니다.
         """
         if not self.client:
-            self.log.error("[DB-firebase]     - Client not connected")
+            self.log.error(f"[DB-firebase]     - Client not connected for project '{self.cfg.project_id}'")
             raise RuntimeError("Firebase client is not connected")
         return self.client
 
@@ -88,10 +87,9 @@ class FirebaseHandler:
         """
         try:
             if self.client:
-                self.log.debug("[DB-firebase]     - Disconnecting...")
+                self.log.debug(f"[DB-firebase]     - Disconnecting from project '{self.cfg.project_id}'")
                 
                 # Firestore 클라이언트는 명시적인 close() 메서드가 없음
-                # 대신 참조를 제거하여 가비지 컬렉션되도록 함
                 self.client = None
                 
                 # Firebase Admin App 삭제
@@ -99,9 +97,9 @@ class FirebaseHandler:
                     firebase_admin.delete_app(self._app)
                     self._app = None
                 
-                self.log.info("[DB-firebase]     -- Disconnected")
+                self.log.info(f"[DB-firebase]     -- Disconnected from project '{self.cfg.project_id}'")
         except Exception as e:
-            self.log.warning(f"[DB-firebase]     - Disconnect failed: {str(e)}")
+            self.log.warning(f"[DB-firebase]     - Disconnect failed for project '{self.cfg.project_id}': {str(e)}")
 
     def health_check(self) -> bool:
         """
@@ -116,7 +114,8 @@ class FirebaseHandler:
             test_doc = test_collection.document('test')
             test_doc.get()
             
+            self.log.debug(f"[DB-firebase]     - Health check passed for project '{self.cfg.project_id}'")
             return True
         except Exception as e:
-            self.log.warning(f"[DB-firebase]     - Health check failed: {str(e)}")
+            self.log.warning(f"[DB-firebase]     - Health check failed for project '{self.cfg.project_id}': {str(e)}")
             return False
