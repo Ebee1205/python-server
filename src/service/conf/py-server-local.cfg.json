@@ -33,7 +33,7 @@
     
     "logger": {
         "level": "debug",
-        "path": "./logs/test.log-%DATE%",
+        "path": "./logs/py-local-server.log-%DATE%",
         "suffix": "%Y-%m-%d",
         "max_bytes": 10485760,
         "max_files": "3d",
