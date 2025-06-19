@@ -20,14 +20,14 @@ class SystemMonitor:
     def start(self) -> None:
         """모니터링 시작"""
         if self._monitor_thread and self._monitor_thread.is_alive():
-            self.log.warning("[Manager]     -- System monitor is already running")
+            self.log.warning("Manager", "-- System monitor is already running")
             return
         
         self._stop_event.clear()
         self._monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._monitor_thread.start()
         
-        self.log.info(f"[Manager]     -- System monitor started (interval: {self.interval}s)")
+        self.log.info("Manager", f"-- System monitor started (interval: {self.interval}s)")
     
     def stop(self) -> None:
         """모니터링 중지"""
@@ -37,7 +37,7 @@ class SystemMonitor:
         self._stop_event.set()
         self._monitor_thread.join(timeout=5)
         
-        self.log.info("[Manager]     -- system monitor stopped")
+        self.log.info("Manager", "-- system monitor stopped")
     
     def _monitor_loop(self) -> None:
         """모니터링 루프"""
@@ -46,7 +46,7 @@ class SystemMonitor:
                 self._log_system_stats()
                 time.sleep(self.interval)
             except Exception as e:
-                self.log.error(f"[Manager]     !! Error in system monitoring: {e}")
+                self.log.error("Manager", f"!! Error in system monitoring: {e}")
                 time.sleep(self.interval)
     
     def _log_system_stats(self) -> None:
@@ -78,10 +78,10 @@ class SystemMonitor:
             )
             
         except psutil.NoSuchProcess:
-            self.log.warning("[Manager]     !! Process no longer exists for monitoring")
+            self.log.warning("Manager", "!! Process no longer exists for monitoring")
             self._stop_event.set()
         except Exception as e:
-            self.log.error(f"[Manager]     !! Error collecting system stats: {e}")
+            self.log.error("Manager", f"!! Error collecting system stats: {e}")
     
     def get_current_stats(self) -> dict:
         """현재 시스템 통계 반환"""
@@ -96,5 +96,5 @@ class SystemMonitor:
                 'pid': self.process.pid,
             }
         except Exception as e:
-            self.log.error(f"[Manager]     !! Error getting current stats: {e}")
+            self.log.error("Manager", f"!! Error getting current stats: {e}")
             return {}

@@ -20,14 +20,14 @@ async def firebase_get_document(ctx, collection_path: str, document_id: str) -> 
         
         if doc.exists:
             data = doc.to_dict()
-            ctx.log.debug(f"[DB-firebase]     == GET {collection_path}/{document_id} > found")
+            ctx.log.debug("DB-firestore", f"== GET {collection_path}/{document_id} > found")
             return data
         else:
-            ctx.log.debug(f"[DB-firebase]     == GET {collection_path}/{document_id} > not found")
+            ctx.log.debug("DB-firestore", f"== GET {collection_path}/{document_id} > not found")
             return None
             
     except GoogleCloudError as e:
-        ctx.log.error(f"[DB-firebase]     -- GET error: {collection_path}/{document_id}, {str(e)}")
+        ctx.log.error("DB-firestore", f"-- GET error: {collection_path}/{document_id}, {str(e)}")
         return None
 
 # 단일 문서 저장/업데이트
@@ -41,15 +41,15 @@ async def firebase_set_document(ctx, collection_path: str, document_id: str, dat
         
         if merge:
             doc_ref.set(data, merge=True)
-            ctx.log.debug(f"[DB-firebase]     !! SET (merge) {collection_path}/{document_id}")
+            ctx.log.debug("DB-firestore", f"!! SET (merge) {collection_path}/{document_id}")
         else:
             doc_ref.set(data)
-            ctx.log.debug(f"[DB-firebase]     !! SET (replace) {collection_path}/{document_id}")
+            ctx.log.debug("DB-firestore", f"!! SET (replace) {collection_path}/{document_id}")
         
         return True
         
     except GoogleCloudError as e:
-        ctx.log.error(f"[DB-firebase]     -- SET error: {collection_path}/{document_id}, {str(e)}")
+        ctx.log.error("DB-firestore", f"-- SET error: {collection_path}/{document_id}, {str(e)}")
         return False
 
 # 문서 삭제
@@ -61,11 +61,11 @@ async def firebase_delete_document(ctx, collection_path: str, document_id: str) 
         doc_ref = client.collection(collection_path).document(document_id)
         doc_ref.delete()
         
-        ctx.log.debug(f"[DB-firebase]     !! DELETE {collection_path}/{document_id}")
+        ctx.log.debug("DB-firestore", f"!! DELETE {collection_path}/{document_id}")
         return True
         
     except GoogleCloudError as e:
-        ctx.log.error(f"[DB-firebase]     -- DELETE error: {collection_path}/{document_id}, {str(e)}")
+        ctx.log.error("DB-firestore", f"-- DELETE error: {collection_path}/{document_id}, {str(e)}")
         return False
 
 # 컬렉션 쿼리 (필터링)
@@ -106,11 +106,11 @@ async def firebase_query_collection(ctx, collection_path: str, filters: List[Dic
             doc_data['_id'] = doc.id  # 문서 ID 추가
             results.append(doc_data)
         
-        ctx.log.debug(f"[DB-firebase]     == QUERY {collection_path} > {len(results)} results")
+        ctx.log.debug("DB-firestore", f"== QUERY {collection_path} > {len(results)} results")
         return results
         
     except GoogleCloudError as e:
-        ctx.log.error(f"[DB-firebase]     -- QUERY error: {collection_path}, {str(e)}")
+        ctx.log.error("DB-firestore", f"-- QUERY error: {collection_path}, {str(e)}")
         return []
 
 # 문서 존재 여부 확인
@@ -123,11 +123,11 @@ async def firebase_document_exists(ctx, collection_path: str, document_id: str) 
         doc = doc_ref.get()
         
         exists = doc.exists
-        ctx.log.debug(f"[DB-firebase]     == EXISTS {collection_path}/{document_id} > {exists}")
+        ctx.log.debug("DB-firestore", f"== EXISTS {collection_path}/{document_id} > {exists}")
         return exists
         
     except GoogleCloudError as e:
-        ctx.log.error(f"[DB-firebase]     -- EXISTS error: {collection_path}/{document_id}, {str(e)}")
+        ctx.log.error("DB-firestore", f"-- EXISTS error: {collection_path}/{document_id}, {str(e)}")
         return False
 
 # 문서에 새 필드 추가 (기존 필드 유지)
@@ -139,11 +139,11 @@ async def firebase_update_fields(ctx, collection_path: str, document_id: str, up
         doc_ref = client.collection(collection_path).document(document_id)
         doc_ref.update(updates)
         
-        ctx.log.debug(f"[DB-firebase]     !! UPDATE {collection_path}/{document_id} > {list(updates.keys())}")
+        ctx.log.debug("DB-firestore", f"!! UPDATE {collection_path}/{document_id} > {list(updates.keys())}")
         return True
         
     except GoogleCloudError as e:
-        ctx.log.error(f"[DB-firebase]     -- UPDATE error: {collection_path}/{document_id}, {str(e)}")
+        ctx.log.error("DB-firestore", f"-- UPDATE error: {collection_path}/{document_id}, {str(e)}")
         return False
 
 # 배치 작업 (여러 문서를 한 번에 처리)
@@ -170,11 +170,11 @@ async def firebase_batch_operations(ctx, operations: List[Dict[str, Any]]) -> bo
                 batch.delete(doc_ref)
         
         batch.commit()
-        ctx.log.debug(f"[DB-firebase]     !! BATCH > {len(operations)} operations")
+        ctx.log.debug("DB-firestore", f"!! BATCH > {len(operations)} operations")
         return True
         
     except GoogleCloudError as e:
-        ctx.log.error(f"[DB-firebase]     -- BATCH error: {str(e)}")
+        ctx.log.error("DB-firestore", f"-- BATCH error: {str(e)}")
         return False
 
 # 자동 ID로 문서 생성
@@ -187,9 +187,9 @@ async def firebase_add_document(ctx, collection_path: str, data: Dict[str, Any])
         doc_ref.set(data)
         
         doc_id = doc_ref.id
-        ctx.log.debug(f"[DB-firebase]     !! ADD {collection_path}/{doc_id}")
+        ctx.log.debug("DB-firestore", f"!! ADD {collection_path}/{doc_id}")
         return doc_id
         
     except GoogleCloudError as e:
-        ctx.log.error(f"[DB-firebase]     -- ADD error: {collection_path}, {str(e)}")
+        ctx.log.error("DB-firestore", f"-- ADD error: {collection_path}, {str(e)}")
         return None

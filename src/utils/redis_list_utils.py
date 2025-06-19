@@ -8,6 +8,6 @@ async def redis_lpush(ctx, key: str, value: str):
     try:
         client = ctx.redis_handler.client
         await client.lpush(key, value)
-        ctx.log.debug(f"[REDIS]    << LPUSH {key} = {value}")
+        ctx.log.debug("REDIS", f"<< LPUSH {key} = {value}")
     except Exception as e:
-        ctx.log.error(f"[REDIS]    -- LPUSH error: {key}, {e}")
+        ctx.log.error("REDIS", f"-- LPUSH error: {key}, {e}")

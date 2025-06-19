@@ -25,15 +25,15 @@ class DBHandler:
                 cursorclass=pymysql.cursors.DictCursor,
                 autocommit=True
             )
-            self.log.info("[DB]     ++ Connected (host=%s, db=%s)", conf.host, conf.database)
+            self.log.info("DB", "++ Connected (host=%s, db=%s)", conf.host, conf.database)
         except Exception as e:
-            self.log.error("[DB]     - Connection error: %s", str(e))
+            self.log.error("DB", "- Connection error: %s", str(e))
             self.connection = None
 
     def get_connection(self) -> Connection:
         with self.lock:
             if self.connection is None or not self.connection.open:
-                self.log.warning("[DB]     - not connected")
+                self.log.warning("DB", "- not connected")
                 self.connect()
             return self.connection
 
@@ -42,9 +42,9 @@ class DBHandler:
             if self.connection:
                 try:
                     self.connection.close()
-                    self.log.info("[DB]     -- Disconnected")
+                    self.log.info("DB", "-- Disconnected")
                 except Exception as e:
-                    self.log.warning("[DB]     - Disconnect failed: %s", str(e))
+                    self.log.warning("DB", "- Disconnect failed: %s", str(e))
                 finally:
                     self.connection = None
     
@@ -64,7 +64,7 @@ class DBCursor:
             self.cursor = conn.cursor()
             return self.cursor
         except Exception as e:
-            self.log.error("[DB]     - Acquire Cursor Failed: %s", str(e))
+            self.log.error("DB", "- Acquire Cursor Failed: %s", str(e))
             raise
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -72,4 +72,4 @@ class DBCursor:
             try:
                 self.cursor.close()
             except Exception as e:
-                self.log.warning("[DB]     - Close Cursor Failed: %s", str(e))
+                self.log.warning("DB", "- Close Cursor Failed: %s", str(e))

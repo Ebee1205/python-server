@@ -38,7 +38,7 @@ async def dispatch_event(ctx, event, source_type, queue_name=None, **kwargs):
 
 async def dispatch_redis_event(ctx, event: str, key: str, fields: dict) -> dict:
     try:
-        ctx.log.info(f"[DISPATCH]  << Processing Redis event '{event}' for key={key}")
+        ctx.log.info("Manager", f"<< Processing Redis event '{event}' for key={key}")
 
         result = await dispatch_event(
             ctx,
@@ -48,21 +48,21 @@ async def dispatch_redis_event(ctx, event: str, key: str, fields: dict) -> dict:
             key=key
         )
 
-        ctx.log.info(f"[DISPATCH]  !! Event '{event}' processing result: {result}")
+        ctx.log.info("Manager", f"!! Event '{event}' processing result: {result}")
 
         tid = fields.get("tid")
         if tid and result.get("status") != "error":
             result_key = f"result:{tid}"
             result_json = orjson.dumps(result)
             await ctx.redis_handler.client.lpush(result_key, result_json)
-            ctx.log.info(f"[DISPATCH]  >> Result pushed to {result_key}")
+            ctx.log.info("Manager", f">> Result pushed to {result_key}")
         elif not tid:
-            ctx.log.warning("[DISPATCH]  -- No tid found in fields, cannot send result")
+            ctx.log.warning("Manager", "-- No tid found in fields, cannot send result")
 
         return result
 
     except Exception as e:
-        ctx.log.error(f"[DISPATCH]  -- Error dispatching Redis event '{event}': {e}")
+        ctx.log.error("Manager", f"-- Error dispatching Redis event '{event}': {e}")
         error_result = {"status": "error", "message": str(e), "event": event}
 
         tid = fields.get("tid")
