@@ -11,10 +11,14 @@ import traceback
 import asyncio
 
 from src.app_context import AppContext
+
 from service.messaging.basic_ws import router as ws_basic_router
 from service.api.basic_api import router as basic_router
-from service.api.admin_sandbox_api import router as admin_sandbox_router
+from service.api.admin_sandbox_llm_api import router as admin_sandbox_llm_router
+from service.api.admin_sandbox_docs_api import router as admin_sandbox_docs_router
+
 from modules.redis_keyevent_listener import start_keyevent_listener
+from src.utils.firestore_init import init_firestore_schema
 
 class AppFactory:
     """애플리케이션 팩토리 클래스"""
@@ -87,7 +91,8 @@ class AppFactory:
         """라우터 등록"""
         routers = [
             basic_router,
-            admin_sandbox_router,
+            admin_sandbox_llm_router,
+            admin_sandbox_docs_router,
             ws_basic_router
         ]
         for router in routers:
@@ -149,9 +154,10 @@ class AppFactory:
         await ctx.rmq_handler.connect()
         await ctx.rmq_handler.consume_multi()
         
-        # Firebase 연결
-        await ctx.fb_handler.connect()
-        
+        # Firebase 연결(동기식)
+        ctx.fb_handler.connect()
+        init_firestore_schema(ctx)
+
         # Redis 연결
         await ctx.redis_handler.connect()
         await ctx.redis_consumer.init_group()

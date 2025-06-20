@@ -20,13 +20,13 @@ async def ws_send_response(ctx, sid: str, body: dict) -> bool:
     if ws:
         try:
             await ws.send_json(body)
-            log.info(f"[WS]     >> Send message to sid={sid}: {body}")
+            log.info("WS", f">> Send message to sid={sid}: {body}")
             return True
         except Exception as e:
-            log.warning(f"[WS]     - Failed to send to sid={sid}: {e}")
+            log.warning("WS", f"- Failed to send to sid={sid}: {e}")
             # WebSocket 전송 실패 시에도 백업으로 진행
     else:
-        log.warning(f"[WS]     - No active websocket for sid={sid}")
+        log.warning("WS", f"- No active websocket for sid={sid}")
     
     # 2. WebSocket이 없거나 전송 실패 시 Redis 백업
     return await _backup_message_to_redis(ctx, sid, body)
@@ -42,8 +42,8 @@ async def _backup_message_to_redis(ctx, sid: str, body: dict) -> bool:
         # TTL 설정 (예: 1시간)
         await redis_basic_utils.redis_expire(ctx, backup_key, 3600)
         
-        ctx.log.info(f"[WS]     !! Backup message to Redis: {backup_key}")
+        ctx.log.info("WS", f"!! Backup message to Redis: {backup_key}")
         return True
     except Exception as e:
-        ctx.log.error(f"[WS]     -- Redis backup failed: sid={sid}, error={e}")
+        ctx.log.error("WS", f"-- Redis backup failed: sid={sid}, error={e}")
         return False

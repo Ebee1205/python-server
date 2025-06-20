@@ -10,11 +10,11 @@ async def redis_get(ctx, key):
     try:
         client = ctx.redis_handler.client
         value = await client.get(key)
-        ctx.log.debug(f"[REDIS]    == GET {key} > {value}")
+        ctx.log.debug("REDIS", f"== GET {key} > {value}")
 
         return value
     except RedisError as e:
-        ctx.log.error(f"[REDIS]    -- GET error: {key}, {str(e)}")
+        ctx.log.error("REDIS", f"-- GET error: {key}, {str(e)}")
         return None
 
 
@@ -26,11 +26,11 @@ async def redis_set(ctx, key, value, expire_sec=None):
         client = ctx.redis_handler.client
         success = await client.set(key, value, ex=expire_sec)
         if not success:
-            ctx.log.warning(f"[REDIS]    - SET failed: {key}")
-        ctx.log.debug(f"[REDIS]    !! SET {key} = {value} (expire: {expire_sec})")
+            ctx.log.warning("REDIS", f"- SET failed: {key}")
+        ctx.log.debug("REDIS", f"!! SET {key} = {value} (expire: {expire_sec})")
         return success
     except RedisError as e:
-        ctx.log.error(f"[REDIS]    -- SET error: {key}, {str(e)}")
+        ctx.log.error("REDIS", f"-- SET error: {key}, {str(e)}")
         return False
 
 
@@ -41,13 +41,13 @@ async def redis_update(ctx, key, new_value):
         client = ctx.redis_handler.client
         if await client.exists(key) > 0:
             await client.set(key, new_value)
-            ctx.log.debug(f"[REDIS]    !! UPDATE {key} = {new_value}")
+            ctx.log.debug("REDIS", f"!! UPDATE {key} = {new_value}")
             return True
         else:
-            ctx.log.warning(f"[REDIS]    - UPDATE failed: {key} not found")
+            ctx.log.warning("REDIS", f"- UPDATE failed: {key} not found")
             return False
     except RedisError as e:
-        ctx.log.error(f"[REDIS]    -- UPDATE error: {key}, {str(e)}")
+        ctx.log.error("REDIS", f"-- UPDATE error: {key}, {str(e)}")
         return False
 
 
@@ -59,10 +59,10 @@ async def redis_search_by_prefix(ctx, prefix):
         pattern = f"{prefix}*"
         keys = await client.keys(pattern)
         results = {k: await client.get(k) for k in keys}
-        ctx.log.debug(f"[REDIS] SEARCH prefix: {prefix}, found: {len(results)} keys")
+        ctx.log.debug("REDIS", f"SEARCH prefix: {prefix}, found: {len(results)} keys")
         return results
     except RedisError as e:
-        ctx.log.error(f"[REDIS]    -- SEARCH error: {prefix}, {str(e)}")
+        ctx.log.error("REDIS", f"-- SEARCH error: {prefix}, {str(e)}")
         return {}
 
 
@@ -72,10 +72,10 @@ async def redis_delete(ctx, key):
     try:
         client = ctx.redis_handler.client
         result = await client.delete(key)
-        ctx.log.debug(f"[REDIS]    -- DELETE {key} > {result}")
+        ctx.log.debug("REDIS", f"-- DELETE {key} > {result}")
         return result > 0
     except RedisError as e:
-        ctx.log.error(f"[REDIS]    -- DELETE error: {key}, {str(e)}")
+        ctx.log.error("REDIS", f"-- DELETE error: {key}, {str(e)}")
         return False
 
 
@@ -85,10 +85,10 @@ async def redis_exists(ctx, key):
     try:
         client = ctx.redis_handler.client
         result = await client.exists(key) > 0
-        ctx.log.debug(f"[REDIS]    == EXISTS {key} > {result}")
+        ctx.log.debug("REDIS", f"== EXISTS {key} > {result}")
         return result
     except RedisError as e:
-        ctx.log.error(f"[REDIS]    -- EXISTS error: {key}, {str(e)}")
+        ctx.log.error("REDIS", f"-- EXISTS error: {key}, {str(e)}")
         return False
 
 
@@ -99,8 +99,8 @@ async def redis_expire(ctx, key, ttl: int):
     try:
         client = ctx.redis_handler.client
         result = await client.expire(key, ttl)
-        ctx.log.debug(f"[REDIS]    !! EXPIRE {key} > {ttl}s")
+        ctx.log.debug("REDIS", f"!! EXPIRE {key} > {ttl}s")
         return result
     except RedisError as e:
-        ctx.log.error(f"[REDIS]    -- EXPIRE error: {key}, {str(e)}")
+        ctx.log.error("REDIS", f"-- EXPIRE error: {key}, {str(e)}")
         return False

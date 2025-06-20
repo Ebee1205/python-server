@@ -21,7 +21,7 @@ class RabbitMQHandler:
 
     async def connect(self):
         try:
-            self.log.debug("[RMQ]     - Connecting...")
+            self.log.debug("RMQ", "- Connecting...")
             self.connection = await aio_pika.connect_robust(
                 host=self.cfg.host,
                 port=self.cfg.port,
@@ -39,30 +39,30 @@ class RabbitMQHandler:
                 durable=True
             )
 
-            self.log.info("[RMQ]     == Connected")
+            self.log.info("RMQ", "== Connected")
 
         except AMQPConnectionError as e:
-            self.log.error(f"[RMQ]     - Connection error: {str(e)}")
+            self.log.error("RMQ", f"- Connection error: {str(e)}")
             raise
 
     async def disconnect(self):
         if self.connection:
             try:
-                self.log.debug("[RMQ]     - Disconnecting...")
+                self.log.debug("RMQ", "- Disconnecting...")
                 await self.connection.close()
-                self.log.info("[RMQ]     -- Disconnected")
+                self.log.info("RMQ", "-- Disconnected")
             except Exception as e:
                 self.log.warning(f"[RMQ]    - Disconnect failed: {str(e)}")
 
     def get_exchange(self):
         if not self.exchange:
-            self.log.error("[RMQ]     - Exchange not ready")
+            self.log.error("RMQ", "- Exchange not ready")
             raise RuntimeError("Exchange is not initialized")
         return self.exchange
 
     def get_channel(self):
         if not self.channel:
-            self.log.error("[RMQ]     - Channel not ready")
+            self.log.error("RMQ", "- Channel not ready")
             raise RuntimeError("Channel is not initialized")
         return self.channel
 
@@ -71,7 +71,7 @@ class RabbitMQHandler:
 
     async def consume(self, queue_name: str, processor_func):
         if not self.channel:
-            self.log.error("[RMQ]     - Channel not connected")
+            self.log.error("RMQ", "- Channel not connected")
             raise RuntimeError("Channel is not connected")
 
         queue = await self.channel.declare_queue(queue_name, durable=True)
@@ -81,16 +81,16 @@ class RabbitMQHandler:
                 try:
                     data = orjson.loads(message.body)
                     await processor_func(self.ctx, data)
-                    self.log.info(f"[RMQ]     - Consumed from '{queue_name}': {data}")
+                    self.log.info("RMQ", f"- Consumed from '{queue_name}': {data}")
                 except Exception as e:
-                    self.log.error(f"[RMQ]     - Consume error ({queue_name}): {str(e)}")
+                    self.log.error("RMQ", f"- Consume error ({queue_name}): {str(e)}")
 
         await queue.consume(_wrapped_callback)
-        self.log.info(f"[RMQ]     == Consuming queue '{queue_name}'")
+        self.log.info("RMQ", f"== Consuming queue '{queue_name}'")
 
     async def consume_multi(self):
         if not hasattr(self.cfg, "queues"):
-            self.log.error("[RMQ]     - No 'queues' defined in config")
+            self.log.error("RMQ", "- No 'queues' defined in config")
             return
 
         for q in self.cfg.queues:
@@ -98,7 +98,7 @@ class RabbitMQHandler:
             queue_type = q.get("type")
 
             if not queue_name or not queue_type:
-                self.log.warning(f"[RMQ]     - Invalid queue config: {q}")
+                self.log.warning("RMQ", f"- Invalid queue config: {q}")
                 continue
 
             if queue_type == "req":
@@ -106,4 +106,4 @@ class RabbitMQHandler:
                 processor_func = partial(processor, queue_name=queue_name)
                 await self.consume(queue_name, processor_func)
             else:
-                self.log.info(f"[RMQ]     == Skipping response queue '{queue_name}' (type={queue_type})")
+                self.log.debug("RMQ", f"== Skipping response queue '{queue_name}' (type={queue_type})")
