@@ -1,6 +1,6 @@
 {
     "environment": "local",
-    "project_name": "Ankoko",
+    "project_name": "pyServer",
     "api_v1_str": "/api/v1",
     "host": "localhost",
     "port": 3000,
@@ -41,14 +41,6 @@
         "use_console": true
     },
 
-    "firebase": {
-      "project_id": "ankoko-87c34",
-      "service_account_path": "src/service/conf/ankoko-firebase-service-account.json",
-      "use_admin_sdk": true,
-      "database_url": "https://ankoko-87c34-default-rtdb.firebaseio.com/",
-      "storage_bucket": "ankoko-87c34.appspot.com"
-    },
-    
     "mysql": {
       "host": "localhost",
       "port": 3306,
@@ -56,47 +48,14 @@
       "password": "changethis-mysql-password",
       "db": "mydatabase"
     },
-
-    "redis": {
-      "host": "localhost",
-      "port": 6379,
-      "db": 0,
-      "password": null
-    },
     
-    "redis_consumer": {
-      "stream_key": "ankoko:ai:stream",
-      "group_name": "ai-group",
-      "consumer_name": "ai-consumer-1"
-    },
-
-    "rmq": {
-      "host": "localhost",
-      "port": 5672,
-      "user": "guest",
-      "password": "guest",
-      "vhost": "/",
-      "exchange": "my_exchange",
-      "exchange_type": "direct",
-      "queues": [
-        { "name": "ankoko-admin-from-algo", "type": "req" },
-        { "name": "ankoko-from-algo", "type": "req" },
-
-        { "name": "ankoko-to-algo", "type": "res" },
-        { "name": "ankoko-admin-to-algo", "type": "res" }
-      ],
-      "routing_key": "my.routing.key",
-      "heartbeat": 60,
-      "reconnect_delay": 5
-    },
-
     "mqtt": {
       "host": "localhost",
       "port": 1883,
       "keepalive": 60,
       "topics": [
-        "ankoko/input",
-        "ankoko/output"
+        "topic/input",
+        "topic/output"
       ]
     }    
 }

@@ -1,3 +1,10 @@
+"""
+ Copyright (c) 2025. Ebee1205(wavicle) all rights reserved.
+
+ The copyright of this software belongs to Ebee1205(wavicle).
+ All rights reserved.
+"""
+
 # app_context.py
 import orjson
 
@@ -5,14 +12,9 @@ from pydantic import BaseModel
 from typing import Any
 from typing import Optional
 
-import src.modules.py_logger as py_logger
+import modules.logger as logger
 from src.modules.system_monitor import SystemMonitor
-from src.handlers.websocket_handler import WebSocketHandler
-from src.handlers.redis_handler import RedisHandler
-from src.handlers.redis_stream_consumer import RedisStreamConsumer
-from src.handlers.rabbitmq_handler import RabbitMQHandler
 from src.handlers.mqtt_handler import MQTTHandler
-from src.handlers.firebase_handler import FirebaseHandler
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -31,37 +33,6 @@ class MySQLConfig(BaseModel):
     user: str
     password: str
     db: str
-
-class FirebaseConfig(BaseModel):
-    project_id: str
-    service_account_path: Optional[str] = None
-    use_admin_sdk: Optional[bool] = True
-    database_url: Optional[str] = None
-    storage_bucket: Optional[str] = None
-
-class RedisConfig(BaseModel):
-    host: str
-    port: int
-    db: int
-    password: Optional[str] = None
-
-class RedisConsumerConfig(BaseModel):
-    stream_key: str
-    group_name: str
-    consumer_name: str
-
-class RMQConfig(BaseModel):
-    host: str
-    port: int
-    user: str
-    password: str
-    vhost: str
-    exchange: str
-    exchange_type: str
-    queues: list[dict]
-    routing_key: str
-    heartbeat: int
-    reconnect_delay: int
 
 class MQTTConfig(BaseModel):
     host: str
@@ -95,11 +66,7 @@ class AppConfig(BaseModel):
     # 구성 요소들
     logger: LoggerConfig
     http_config: Optional[HTTPConfig] = None
-    firebase: Optional[FirebaseConfig] = None
     mysql: Optional[MySQLConfig] = None
-    redis: Optional[RedisConfig] = None
-    redis_consumer: Optional[RedisConsumerConfig] = None
-    rmq: Optional[RMQConfig] = None
     mqtt: Optional[MQTTConfig] = None
 
     # 시스템 모니터링 관련 기본값 설정
@@ -116,19 +83,14 @@ class AppContext:
         self.log = None
         
         # 핸들러
-        self.ws_handler = None
         self.db_handler = None
-        self.fb_handler = None
-        self.redis_handler = None
-        self.redis_consumer = None
-        self.rmq_handler = None
         self.mqtt_handler = None
 
         # 매니저
         self.system_monitor = None
 
         # 서비스
-        self.llm_manager = {}
+        # self.llm_manager = {}
 
     def load_config(self, path: str) -> AppConfig:
         """JSON 파일을 로드하고 AppConfig 모델로 파싱"""
@@ -163,7 +125,7 @@ class AppContext:
         log_level = self.cfg.logger.level 
         log_path = self.cfg.logger.path
         log_max_files = self.cfg.logger.max_files
-        self.log = py_logger.setup_logger(log_level, log_path, log_max_files)
+        self.log = logger.setup_logger(log_level, log_path, log_max_files)
 
         self.log.debug("- end init logger")
         
@@ -177,47 +139,15 @@ class AppContext:
 
         self.log.debug("- end init system manager")
 
-    def _init_websocket(self):
-        self.log.debug("+ start init websocket")
-
-        self.ws_handler = WebSocketHandler(self)
-
-        self.log.debug("- end init websocket")
-
-    def _init_firebase(self):
-        self.log.debug("+ start init Firebase")
-
-        self.fb_handler = FirebaseHandler(self)
-
-        self.log.debug("- end init Firebase")
-
-    def _init_redis(self):
-        self.log.debug("+ start init Redis")
-
-        self.redis_handler = RedisHandler(self)
-
-        self.log.debug("- end init Redis")
-        
-    def _init_redis_consumer(self):
-        self.log.debug("+ start init RedisStreamConsumer")
-
-        self.redis_consumer = RedisStreamConsumer(self)
-        
-        self.log.debug("- end init RedisStreamConsumer")
-
-    def _init_rmq(self):
-        self.log.debug("+ start init RabbitMQ")
-
-        self.rmq_handler = RabbitMQHandler(self)
-
-        self.log.debug("- end init RabbitMQ")
-
     def _init_mqtt(self):
         self.log.debug("+ start init MQTT")
 
         self.mqtt_handler = MQTTHandler(self)
 
         self.log.debug("- end init MQTT")
+    
+
+    # TODO def _init_mysql(self):
 
     def _init_llms(self):
         self.log.debug("+ start init LLMs")
@@ -252,6 +182,4 @@ class AppContext:
 
         self.log.debug("- end init LLMs")
 
-
-    # TODO def _init_mysql(self):
     # TODO _destroy() 메서드 추가

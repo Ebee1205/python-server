@@ -1,3 +1,10 @@
+"""
+ Copyright (c) 2025. Ebee1205(wavicle) all rights reserved.
+
+ The copyright of this software belongs to Ebee1205(wavicle).
+ All rights reserved.
+"""
+
 # main.py
 
 import sys
@@ -12,13 +19,7 @@ import asyncio
 
 from src.app_context import AppContext
 
-from service.messaging.basic_ws import router as ws_basic_router
 from service.api.basic_api import router as basic_router
-from service.api.admin_sandbox_llm_api import router as admin_sandbox_llm_router
-from service.api.admin_sandbox_docs_api import router as admin_sandbox_docs_router
-
-from modules.redis_keyevent_listener import start_keyevent_listener
-from src.utils.firestore_init import init_firestore_schema
 
 class AppFactory:
     """애플리케이션 팩토리 클래스"""
@@ -63,7 +64,6 @@ class AppFactory:
         
         # 설정 로드
         ctx.load_config("src/service/conf/py-server-local.cfg.json")
-        ctx.load_json_map("event_map", "src/service/conf/ankoko-event-map.cfg.json")
 
         # CORS 설정
         AppFactory._setup_cors(app, ctx)
@@ -91,9 +91,6 @@ class AppFactory:
         """라우터 등록"""
         routers = [
             basic_router,
-            admin_sandbox_llm_router,
-            admin_sandbox_docs_router,
-            ws_basic_router
         ]
         for router in routers:
             app.include_router(router)
@@ -134,11 +131,6 @@ class AppFactory:
     async def _initialize_handlers(ctx: AppContext) -> None:
         """핸들러 초기화"""    
         ctx.log.info("     - Initializing handlers...")
-        ctx._init_websocket()
-        ctx._init_firebase()
-        ctx._init_redis()
-        ctx._init_redis_consumer()
-        ctx._init_rmq()
         ctx._init_mqtt()
         
     @staticmethod
@@ -150,20 +142,6 @@ class AppFactory:
     @staticmethod
     async def _setup_connections(ctx: AppContext) -> None:
         """외부 서비스 연결 설정"""
-        # RabbitMQ 연결
-        await ctx.rmq_handler.connect()
-        await ctx.rmq_handler.consume_multi()
-        
-        # Firebase 연결(동기식)
-        ctx.fb_handler.connect()
-        init_firestore_schema(ctx)
-
-        # Redis 연결
-        await ctx.redis_handler.connect()
-        await ctx.redis_consumer.init_group()
-        
-        ctx.redis_consumer_task = asyncio.create_task(ctx.redis_consumer.consume())
-        await asyncio.sleep(0)  # 태스크가 시작되도록 제어권 양보   
 
         # Redis key event
         # asyncio.create_task(start_keyevent_listener(ctx))
@@ -182,45 +160,6 @@ class AppFactory:
         if hasattr(ctx, 'log') and ctx.log:
             ctx.log.info("     -- Shutting down application")
 
-        # Redis 종료
-        if hasattr(ctx, "redis_consumer") and ctx.redis_consumer:
-            try:
-                await ctx.redis_consumer.stop()
-                ctx.log.info("     -- RedisStreamConsumer stopped")
-            except Exception as e:
-                ctx.log.warning(f"     - RedisStreamConsumer stop failed: {e}")
-
-        # Firebase 종료
-        if ctx.fb_handler:
-            try:
-                await ctx.fb_handler.disconnect()
-                ctx.log.info("     -- Firebase handler closed")
-            except Exception as e:
-                ctx.log.warning(f"     - Firebase close failed: {e}")
-
-        if ctx.redis_handler:
-            try:
-                await ctx.redis_handler.disconnect()
-                ctx.log.info("     -- Redis handler closed")
-            except Exception as e:
-                ctx.log.warning(f"     - Redis close failed: {e}")
-
-        # WebSocket 종료
-        if ctx.ws_handler:
-            try:
-                await ctx.ws_handler.disconnect_all()
-                ctx.log.info("     -- WebSocket handler closed")
-            except Exception as e:
-                ctx.log.warning(f"     - WebSocket close failed: {e}")
-
-        # RabbitMQ 종료
-        if ctx.rmq_handler:
-            try:
-                await ctx.rmq_handler.disconnect()
-                ctx.log.info("     -- RabbitMQ handler closed")
-            except Exception as e:
-                ctx.log.warning(f"     - RabbitMQ close failed: {e}")
-
         # MQTT 종료
         if ctx.mqtt_handler:
             try:
@@ -237,14 +176,14 @@ class AppFactory:
             except Exception as e:
                 ctx.log.warning(f"     - system monitor stop failed: {e}")
 
-        # LLM 모델 정리
-        if hasattr(ctx, "llm_models") and ctx.llm_models:
-            try:
-                for name, model in ctx.llm_models.items():
-                    ctx.log.info(f"     -- LLM model '{name}' unloaded (model={getattr(model, 'model', 'unknown')})")
-                ctx.llm_models.clear()
-            except Exception as e:
-                ctx.log.warning(f"     - LLM models cleanup failed: {e}")
+        # # LLM 모델 정리
+        # if hasattr(ctx, "llm_models") and ctx.llm_models:
+        #     try:
+        #         for name, model in ctx.llm_models.items():
+        #             ctx.log.info(f"     -- LLM model '{name}' unloaded (model={getattr(model, 'model', 'unknown')})")
+        #         ctx.llm_models.clear()
+        #     except Exception as e:
+        #         ctx.log.warning(f"     - LLM models cleanup failed: {e}")
 
     @staticmethod
     def _test_logging(logger) -> None:
