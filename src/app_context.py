@@ -13,10 +13,6 @@ from typing import Any
 from typing import Optional
 
 import modules.logger as logger
-from src.modules.system_monitor import SystemMonitor
-from src.handlers.mqtt_handler import MQTTHandler
-
-from fastapi.middleware.cors import CORSMiddleware
 
 class LoggerConfig(BaseModel):
     level: str
@@ -26,19 +22,6 @@ class LoggerConfig(BaseModel):
     max_files: str
     rotation: str
     use_console: bool
-
-class MySQLConfig(BaseModel):
-    host: str
-    port: int
-    user: str
-    password: str
-    db: str
-
-class MQTTConfig(BaseModel):
-    host: str
-    port: int
-    keepalive: int
-    topics: list[str]
 
 class HTTPConfig(BaseModel):
     allow_origins: list[str]
@@ -66,8 +49,6 @@ class AppConfig(BaseModel):
     # 구성 요소들
     logger: LoggerConfig
     http_config: Optional[HTTPConfig] = None
-    mysql: Optional[MySQLConfig] = None
-    mqtt: Optional[MQTTConfig] = None
 
     # 시스템 모니터링 관련 기본값 설정
     enable_monitoring: Optional[bool] = True
@@ -83,8 +64,6 @@ class AppContext:
         self.log = None
         
         # 핸들러
-        self.db_handler = None
-        self.mqtt_handler = None
 
         # 매니저
         self.system_monitor = None
@@ -128,26 +107,6 @@ class AppContext:
         self.log = logger.setup_logger(log_level, log_path, log_max_files)
 
         self.log.debug("- end init logger")
-        
-    def _init_system_manager(self):
-        self.log.debug("+ start init system manager")
-
-        if self.cfg.enable_monitoring:
-            interval = self.cfg.monitoring_interval
-            self.system_monitor = SystemMonitor(self.log, interval)
-            self.system_monitor.start()
-
-        self.log.debug("- end init system manager")
-
-    def _init_mqtt(self):
-        self.log.debug("+ start init MQTT")
-
-        self.mqtt_handler = MQTTHandler(self)
-
-        self.log.debug("- end init MQTT")
-    
-
-    # TODO def _init_mysql(self):
 
     def _init_llms(self):
         self.log.debug("+ start init LLMs")

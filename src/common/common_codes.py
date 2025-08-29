@@ -8,8 +8,3 @@ class ResponseStatus:
     CONFLICT      = { "code": "E0005", "msg": "이미 존재하는 리소스입니다" }
     SERVER_ERROR  = { "code": "E0500", "msg": "서버 내부 오류가 발생했습니다" }
     TIMEOUT       = { "code": "E0009", "msg": "응답 시간이 초과되었습니다" }
-
-
-class AppStatus:
-    USER_REGISTERED = "USER_REGISTERED"
-    USER_LOGGED_IN  = "USER_LOGGED_IN"

@@ -19,7 +19,7 @@ import asyncio
 
 from src.app_context import AppContext
 
-from service.api.basic_api import router as basic_router
+from service.basic.basic_api import router as basic_router
 
 class AppFactory:
     """애플리케이션 팩토리 클래스"""
@@ -63,7 +63,7 @@ class AppFactory:
         app.state.ctx = ctx
         
         # 설정 로드
-        ctx.load_config("src/service/conf/py-server-local.cfg.json")
+        ctx.load_config("src/service/conf/py_server.local.cfg.json")
 
         # CORS 설정
         AppFactory._setup_cors(app, ctx)
@@ -103,10 +103,8 @@ class AppFactory:
             ctx = app.state.ctx
 
             # 초기화 후 연결 설정
-            await AppFactory._initialize_managers(ctx)
             await AppFactory._initialize_handlers(ctx)
             await AppFactory._initialize_algorithms(ctx)
-            await AppFactory._setup_connections(ctx)
             
             ctx.log.info("     == Initialization complete")
 
@@ -117,40 +115,17 @@ class AppFactory:
                 print(f"     -- Initialization error: {str(e)}")
             traceback.print_exc()
             raise
-
-    @staticmethod
-    async def _initialize_managers(ctx: AppContext) -> None:
-        """매니저 초기화"""
-        print("     - Initializing handlers...")   
-        ctx._init_logger()
-        AppFactory._test_logging(ctx.log)
-        
-        ctx._init_system_manager()
         
     @staticmethod
     async def _initialize_handlers(ctx: AppContext) -> None:
         """핸들러 초기화"""    
         ctx.log.info("     - Initializing handlers...")
-        ctx._init_mqtt()
         
     @staticmethod
     async def _initialize_algorithms(ctx: AppContext) -> None:
         """알고리즘 초기화"""
         print("     - Initializing algorithms...")   
         ctx._init_llms()
-
-    @staticmethod
-    async def _setup_connections(ctx: AppContext) -> None:
-        """외부 서비스 연결 설정"""
-
-        # Redis key event
-        # asyncio.create_task(start_keyevent_listener(ctx))
-
-        # TODO mqtt는 비동기로 안해도 괜찮은건가,,,
-        # MQTT 연결 및 구독
-        ctx.mqtt_handler.connect()
-        for topic in ctx.cfg.mqtt.topics:
-            ctx.mqtt_handler.subscribe(topic)
     
     @staticmethod
     async def _shutdown(app: FastAPI) -> None:
@@ -159,22 +134,6 @@ class AppFactory:
 
         if hasattr(ctx, 'log') and ctx.log:
             ctx.log.info("     -- Shutting down application")
-
-        # MQTT 종료
-        if ctx.mqtt_handler:
-            try:
-                ctx.mqtt_handler.disconnect()
-                ctx.log.info("     -- MQTT handler closed")
-            except Exception as e:
-                ctx.log.warning(f"     - MQTT close failed: {e}")
-
-        # 모니터링 종료
-        if ctx.system_monitor:
-            try:
-                ctx.system_monitor.stop()
-                ctx.log.info("     -- system monitor stopped")
-            except Exception as e:
-                ctx.log.warning(f"     - system monitor stop failed: {e}")
 
         # # LLM 모델 정리
         # if hasattr(ctx, "llm_models") and ctx.llm_models:
@@ -200,4 +159,4 @@ app = AppFactory.create_app()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("src.py_web_server:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("src.py_server:app", host="0.0.0.0", port=3000, reload=True)
