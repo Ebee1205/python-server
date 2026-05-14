@@ -139,11 +139,11 @@ pip install -r requirements.txt
 
 ### 3. 환경 설정
 src/service/conf 디렉토리 내의 각 서버용 설정 파일을 환경에 맞게 수정한다.
-- py_web_server.local.cfg.json: Web API Server용 설정
-- py_mw_server.local.cfg.json: Middleware Server용 설정
+- `py_web_server.local.cfg.json`: Web API Server용 설정
+- `py_mw_server.local.cfg.json`: Middleware Server용 설정
 
 
-### 4. 서버를 실행한다.
+### 4. 서버를 실행
 
 ```bash
 python -m src.py_web_server    # Web API Server (기본 8000 포트)
@@ -154,7 +154,18 @@ python -m src.py_mw_server     # Middleware Server (기본 3000 포트)
 
 
 <!-- 관련 링크 -->
-## 📝 관련 링크
+### 📝 관련 링크
+
+#### 개발 노트
+
+| 구분 | 제목 | 설명 |
+| :--- | :--- | :--- |
+| **Architecture** | [LLM 인터페이스 설계](https://wavicle.tistory.com/21) | DI/IoC 원칙을 적용한 AI 엔진 교체 가능한 인터페이스 설계 내용 기록 |
+| **Case Study** | [방토리: AI 기반 스마트 룸 컨디션 매니저](https://wavicle.tistory.com/32) | |
+| **Case Study** | [둥지동지 2.0.0 개발노트](https://wavicle.tistory.com/31) | LLM Classification으로 자연어 구인글을 구조화된 JSON으로 변환하는 파이프라인 적용 사례다. |
+
+
+#### **주요 프로젝트 저장소**
 본 아키텍처가 실제로 적용된 주요 프로젝트 라이브러리
 
 | 구분 | 프로젝트 | 설명 |
