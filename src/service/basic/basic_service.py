@@ -9,7 +9,7 @@ def ping(ctx):
     ctx.log.debug(f"Ping requested in service layer | tid={tid}")
 
     return {
+        "tid": tid,
         "status": "pong",
-        "message": "Hello from basic_service",
-        "tid": tid
+        "message": "Hello from basic_service"
     }

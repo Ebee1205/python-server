@@ -1,0 +1,38 @@
+{
+    "environment": "local",
+    "project_name": "py_mw_server",
+    "api_v1_str": "/api/v1",
+    "host": "localhost",
+    "port": 3000,
+    "secret_key": "changethis-secret-key",
+    "access_token_expire_minutes": 1440,
+
+    "rmq": {
+      "host": "localhost",
+      "port": 5672,
+      "user": "guest",
+      "password": "guest",
+      "queues": [
+        { "name": "py-send-logs", "type": "sub" }
+      ]
+    },
+    
+    "mongodb": {
+      "host": "localhost",
+      "port": 27017,
+      "user": null,
+      "password": null,
+      "database": "py"
+    },
+
+    "logger": {
+        "level": "debug",
+        "path": "./logs/py_mw_server.log-%DATE%",
+        "suffix": "%Y-%m-%d",
+        "max_bytes": 10485760,
+        "max_files": "3d",
+        "rotation": "daily",
+        "use_console": true
+    }  
+}
+  

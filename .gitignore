@@ -19,3 +19,7 @@ __pycache__/
 # .vscode/
 # .idea/
 *.gguf
+
+# 시크릿 토큰 파일
+src/service/conf/*token*.json
+/py_venv
