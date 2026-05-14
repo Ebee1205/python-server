@@ -257,3 +257,25 @@ class AppContext:
             self.system_monitor.start()
 
         self.log.debug("- end init system manager")
+
+    # def _init_llms(self):
+    #     if not self.cfg or not getattr(self.cfg, "llm", None):
+    #         if self.log:
+    #             self.log.warning("[LLM] llm config missing; skipping LLM init")
+    #         return
+
+    #     self.log.debug("+ start init LLMs")
+
+    #     try:
+    #         # provider 직접 주입
+    #         self.llm_manager = LLMManager(
+    #             ctx=self,
+    #             provider=self.cfg.llm.provider,
+    #             model=self.cfg.llm.model
+    #         )
+    #         if self.log:
+    #             self.log.info(f"[LLM] manager ready (model={self.cfg.llm.model})")
+    #     except Exception as e:
+    #         if self.log:
+    #             self.log.error(f"[LLM] init failed: {e}")
+    #         raise
