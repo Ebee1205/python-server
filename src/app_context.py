@@ -1,3 +1,10 @@
+"""
+ Copyright (c) 2025. Ebee1205(wavicle) all rights reserved.
+
+ The copyright of this software belongs to Ebee1205(wavicle).
+ All rights reserved.
+"""
+
 # app_context.py
 import orjson
 
@@ -5,16 +12,15 @@ from pydantic import BaseModel
 from typing import Any
 from typing import Optional
 
-import src.modules.py_logger as py_logger
-from src.modules.system_monitor import SystemMonitor
-from src.handlers.websocket_handler import WebSocketHandler
-from src.handlers.redis_handler import RedisHandler
-from src.handlers.redis_stream_consumer import RedisStreamConsumer
-from src.handlers.rabbitmq_handler import RabbitMQHandler
-from src.handlers.mqtt_handler import MQTTHandler
-from src.handlers.firebase_handler import FirebaseHandler
+from src.modules import logger
 
-from fastapi.middleware.cors import CORSMiddleware
+from src.modules.system_monitor import SystemMonitor
+from src.handler.websocket_handler import WebSocketHandler
+from src.handler.db_handler import DBHandler
+# from src.handler.mongodb_handler import MongoDBHandler
+from src.handler.rabbitmq_handler import RabbitMQHandler
+from src.handler.redis_handler import RedisHandler
+from src.handler.redis_stream_consumer import RedisStreamConsumer
 
 class LoggerConfig(BaseModel):
     level: str
@@ -25,62 +31,62 @@ class LoggerConfig(BaseModel):
     rotation: str
     use_console: bool
 
-class MySQLConfig(BaseModel):
-    host: str
-    port: int
-    user: str
-    password: str
-    db: str
-
-class FirebaseConfig(BaseModel):
-    project_id: str
-    service_account_path: Optional[str] = None
-    use_admin_sdk: Optional[bool] = True
-    database_url: Optional[str] = None
-    storage_bucket: Optional[str] = None
-
-class RedisConfig(BaseModel):
-    host: str
-    port: int
-    db: int
-    password: Optional[str] = None
-
-class RedisConsumerConfig(BaseModel):
-    stream_key: str
-    group_name: str
-    consumer_name: str
-
-class RMQConfig(BaseModel):
-    host: str
-    port: int
-    user: str
-    password: str
-    vhost: str
-    exchange: str
-    exchange_type: str
-    queues: list[dict]
-    routing_key: str
-    heartbeat: int
-    reconnect_delay: int
-
-class MQTTConfig(BaseModel):
-    host: str
-    port: int
-    keepalive: int
-    topics: list[str]
-
 class HTTPConfig(BaseModel):
     allow_origins: list[str]
     allow_methods: list[str]
     allow_headers: list[str]
     allow_credentials: bool
     
-class LLMModelConfig(BaseModel):
-    provider: str
-    model: str
+class DBConfig(BaseModel):
+    host: Optional[str]
+    port: Optional[int]
+    user: Optional[str]
+    password: Optional[str] = None
+    database: Optional[str] = None
+    charset: Optional[str] = "utf8mb4"
+    autocommit: Optional[bool] = True
+
+class MongoDBConfig(BaseModel):
+    host: Optional[str]
+    port: Optional[int]
+    user: Optional[str]
+    password: Optional[str] = None
+    database: Optional[str] = None
+    
+class RMQConfig(BaseModel):
+    host: Optional[str]
+    port: Optional[int]
+    user: Optional[str]
+    password: Optional[str]
+    queues: Optional[list[dict]]
+
+class RedisConfig(BaseModel):
+    host: Optional[str]
+    port: Optional[int]
+    db: Optional[int]
+    password: Optional[str] = None
+
+class RedisConsumerConfig(BaseModel):
+    stream_key: Optional[str]
+    group_name: Optional[str]
+    consumer_name: Optional[str]
+
+
+class R2Config(BaseModel):
+    account_id: Optional[str] = None
+    access_key_id: Optional[str] = None
+    secret_access_key: Optional[str] = None
+    bucket_name: Optional[str] = None
+    region: Optional[str] = "auto"
+    endpoint_url: Optional[str] = None
+    public_base_url: Optional[str] = None
+    image_prefix: Optional[str] = "images"
+    upload_url_expire_seconds: Optional[int] = 900
+
 
 class LLMConfig(BaseModel):
-    models: dict[str, LLMModelConfig]
+    provider: str           # "ollama" | "openai" | ...
+    model: str              # "llama3.2" 등
 
 class AppConfig(BaseModel):
     # 상위 항목 직접 정의
@@ -93,14 +99,15 @@ class AppConfig(BaseModel):
     access_token_expire_minutes: int
 
     # 구성 요소들
+    mongodb: Optional[MongoDBConfig] = None
     logger: LoggerConfig
     http_config: Optional[HTTPConfig] = None
-    firebase: Optional[FirebaseConfig] = None
-    mysql: Optional[MySQLConfig] = None
+
+    rmq: Optional[RMQConfig] = None
     redis: Optional[RedisConfig] = None
     redis_consumer: Optional[RedisConsumerConfig] = None
-    rmq: Optional[RMQConfig] = None
-    mqtt: Optional[MQTTConfig] = None
+    r2: Optional[R2Config] = None
+    db: Optional[DBConfig] = None
 
     # 시스템 모니터링 관련 기본값 설정
     enable_monitoring: Optional[bool] = True
@@ -117,18 +124,13 @@ class AppContext:
         
         # 핸들러
         self.ws_handler = None
-        self.db_handler = None
-        self.fb_handler = None
         self.redis_handler = None
         self.redis_consumer = None
-        self.rmq_handler = None
-        self.mqtt_handler = None
+        self.mongo_handler = None
+        self.db_handler = None
 
         # 매니저
         self.system_monitor = None
-
-        # 서비스
-        self.llm_manager = {}
 
     def load_config(self, path: str) -> AppConfig:
         """JSON 파일을 로드하고 AppConfig 모델로 파싱"""
@@ -157,25 +159,37 @@ class AppContext:
             print(f"!! failed to load JSON map '{name}' from {path}: {e}")
             return False
 
+    def load_token(self, path: str):
+        """토큰 파일을 로드하여 cfg의 각 서비스 설정에 병합"""
+        try:
+            with open(path, "rb") as f:
+                tokens = orjson.loads(f.read())
+
+            if "r2" in tokens and self.cfg.r2:
+                r2 = tokens["r2"]
+                if "access_key_id" in r2:
+                    self.cfg.r2.access_key_id = r2["access_key_id"]
+                if "secret_access_key" in r2:
+                    self.cfg.r2.secret_access_key = r2["secret_access_key"]
+
+            print(f"> loaded token from {path}")
+            return True
+        except FileNotFoundError:
+            print(f"!! token file not found: {path}")
+            return False
+        except Exception as e:
+            print(f"!! failed to load token '{path}': {e}")
+            return False
+
     def _init_logger(self):
         print("+ start init logger")
 
         log_level = self.cfg.logger.level 
         log_path = self.cfg.logger.path
         log_max_files = self.cfg.logger.max_files
-        self.log = py_logger.setup_logger(log_level, log_path, log_max_files)
+        self.log = logger.setup_logger(log_level, log_path, log_max_files)
 
         self.log.debug("- end init logger")
-        
-    def _init_system_manager(self):
-        self.log.debug("+ start init system manager")
-
-        if self.cfg.enable_monitoring:
-            interval = self.cfg.monitoring_interval
-            self.system_monitor = SystemMonitor(self.log, interval)
-            self.system_monitor.start()
-
-        self.log.debug("- end init system manager")
 
     def _init_websocket(self):
         self.log.debug("+ start init websocket")
@@ -184,12 +198,12 @@ class AppContext:
 
         self.log.debug("- end init websocket")
 
-    def _init_firebase(self):
-        self.log.debug("+ start init Firebase")
+    def _init_rmq(self):
+        self.log.debug("+ start init RabbitMQ")
 
-        self.fb_handler = FirebaseHandler(self)
+        self.rmq_handler = RabbitMQHandler(self)
 
-        self.log.debug("- end init Firebase")
+        self.log.debug("- end init RabbitMQ")
 
     def _init_redis(self):
         self.log.debug("+ start init Redis")
@@ -204,54 +218,42 @@ class AppContext:
         self.redis_consumer = RedisStreamConsumer(self)
         
         self.log.debug("- end init RedisStreamConsumer")
+        
+    def _init_db(self) -> None:
+        self.log.debug("+ start init DB")
 
-    def _init_rmq(self):
-        self.log.debug("+ start init RabbitMQ")
+        if not self.cfg.db:
+            self.log.debug("- skip init DB (no config)")
+            return
 
-        self.rmq_handler = RabbitMQHandler(self)
+        db_config = self.cfg.db.dict()
+        self.db_handler = DBHandler(db_config)
+        self.db_handler.init_connection()
 
-        self.log.debug("- end init RabbitMQ")
+        from src.utils.db_init import init_db_if_needed
+        init_db_if_needed(self.db_handler, self.log)
 
-    def _init_mqtt(self):
-        self.log.debug("+ start init MQTT")
+        self.log.debug("- end init DB")
+        
+    # def _init_mongodb(self):
+    #     self.log.debug("+ start init MongoDB")
+        
+    #     if not self.cfg.mongodb:
+    #         self.log.debug("- skip init MongoDB (no config)")
+    #         return
+            
+    #     mongo_config = self.cfg.mongodb.dict()
+    #     self.mongo_handler = MongoDBHandler(mongo_config)
+    #     self.mongo_handler.init_connection()
+        
+    #     self.log.debug("- end init MongoDB")
 
-        self.mqtt_handler = MQTTHandler(self)
+    def _init_system_manager(self):
+        self.log.debug("+ start init system manager")
 
-        self.log.debug("- end init MQTT")
+        if self.cfg.enable_monitoring:
+            interval = self.cfg.monitoring_interval
+            self.system_monitor = SystemMonitor(self.log, interval)
+            self.system_monitor.start()
 
-    def _init_llms(self):
-        self.log.debug("+ start init LLMs")
-
-        self.llm_manager = {}
-
-        if self.cfg.llm:
-            from src.service.ai.llm_base_manager import BaseLLMManager, load_all_llm_managers
-            load_all_llm_managers()
-
-            for cls in BaseLLMManager.__subclasses__():
-                model_key = getattr(cls, "model_key", None)
-                manager_key = getattr(cls, "manager_key", None)
-
-                if not model_key or not manager_key:
-                    self.log.warning(f"[LLM]     !! {cls.__name__} missing model_key or manager_key")
-                    continue
-
-                if model_key not in self.cfg.llm.models:
-                    self.log.warning(f"[LLM]     !! No model config found for model_key '{model_key}'")
-                    continue
-
-                instance = cls(self)
-                try:
-                    instance.init()
-                    self.llm_manager[manager_key] = instance
-                    self.log.debug(f"[LLM]     - Registered LLM manager '{manager_key}' using model '{model_key}' ({cls.__name__})")
-                except Exception as e:
-                    self.log.error(f"[LLM]     !! Failed to init {cls.__name__}: {e}")
-        else:
-            self.log.warning("[LLM]     !! No LLM config found")
-
-        self.log.debug("- end init LLMs")
-
-
-    # TODO def _init_mysql(self):
-    # TODO _destroy() 메서드 추가
+        self.log.debug("- end init system manager")

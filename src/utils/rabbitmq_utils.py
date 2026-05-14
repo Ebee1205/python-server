@@ -3,7 +3,7 @@
 
 import orjson
 import aio_pika
-from src.common.common_codes import ResponseStatus
+from src.core.responses import ResponseStatus
 
 async def rmq_send_response(ctx, queue_name: str, body: dict):
     """
@@ -34,17 +34,19 @@ async def rmq_send_response(ctx, queue_name: str, body: dict):
     except Exception as e:
         log.error("RMQ", f"- Send Response Failed: '{queue_name}': {e}")
 
-async def rmq_send_error(ctx, queue_name: str, original_msg: dict, status: dict = ResponseStatus.SERVER_ERROR):
+async def rmq_send_error(ctx, queue_name: str, original_msg: dict, status: ResponseStatus = ResponseStatus.SERVER_ERROR):
     """
     에러 메시지를 표준 형식으로 전송합니다.
     original_msg는 요청 메시지를 그대로 반영해도 되고, 일부만 포함해도 됩니다.
     """
     log = ctx.log
+    status_info = status.info
+
     error_response = {
-        "status": status,
+        "status": status_info,
         "data": None,
         "original": original_msg
     }
 
-    log.info("RMQ", ">> Send Error: '%s': %s", queue_name, status["code"])
+    log.info("RMQ", ">> Send Error: '%s': %s", queue_name, status_info["code"])
     await rmq_send_response(ctx, queue_name, error_response)
