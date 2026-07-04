@@ -170,8 +170,8 @@ python -m src.py_mw_server     # Middleware Server (기본 3000 포트)
 
 | 구분 | 프로젝트 | 설명 |
 | :--- | :--- | :--- |
-| **Web API** | [TryAngle BE (트라이앵글)](https://github.com/AT-try-angle/try-angle-sever) | FastAPI 기반의 온디바이스 AI 포즈 가이드 서비스용 서버 |
-| **Middleware** | [TryAngle MW (트라이앵글)](https://github.com/AT-try-angle/try-angle-sever) | 시스템 간 통신 관리 및 실시간 데이터 처리를 위한 미들웨어 서버 |
+| **Web API** | [TryAngle BE (트라이앵글)](https://github.com/AT-try-angle/try-angle-server) | FastAPI 기반의 온디바이스 AI 포즈 가이드 서비스용 서버 |
+| **Middleware** | [TryAngle MW (트라이앵글)](https://github.com/AT-try-angle/try-angle-server) | 시스템 간 통신 관리 및 실시간 데이터 처리를 위한 미들웨어 서버 |
 | **Web API & AI** | [ DOQ (도큐)](https://github.com/AT-Ankoko/doq-server) | LLM 기반의 AI 계약 중재 및 협상 플랫폼 서버 |
 | **Web API & AI** | [둥지동지 (DungDong)](https://github.com/GetOurRI/DungDong-BE) | 대학 커뮤니티용 룸메이트 매칭 및 이미지 생성 AI 서버 |
 | **Web API & AI** | [방토리  (Bangtori)](https://github.com/gaj-on/Bangtori_AI) | 실시간 데이터 처리를 위한 AI 기반 주거 정보 서비스 서버 |
