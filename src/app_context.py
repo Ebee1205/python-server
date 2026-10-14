@@ -22,6 +22,9 @@ from src.handler.rabbitmq_handler import RabbitMQHandler
 from src.handler.redis_handler import RedisHandler
 from src.handler.redis_stream_consumer import RedisStreamConsumer
 
+# from src.llm.llm_manager import LLMManager
+# from src.llm.rag_manager import RAGManager
+
 class LoggerConfig(BaseModel):
     level: str
     path: str
@@ -85,8 +88,20 @@ class R2Config(BaseModel):
 
 
 class LLMConfig(BaseModel):
-    provider: str           # "ollama" | "openai" | ...
-    model: str              # "llama3.2" 등
+    provider: str
+    model: str
+    base_url: Optional[str] = None
+    timeout_seconds: int = 120
+    # 실제 키는 cfg에 저장하지 않고 이 이름의 환경변수에서 조회한다.
+    api_key_env: Optional[str] = None
+
+class RAGConfig(BaseModel):
+    enabled: bool = True
+    chunks_path: str = "reference/atm_chunks.json"
+    index_path: str = "faiss_index_chunks"
+    embedding_model: str = "nomic-embed-text"
+    embedding_base_url: Optional[str] = "http://127.0.0.1:11434"
+
 
 class AppConfig(BaseModel):
     # 상위 항목 직접 정의
@@ -114,7 +129,8 @@ class AppConfig(BaseModel):
     monitoring_interval: Optional[int] = 10
 
     # 서비스 관련
-    llm: Optional[LLMConfig] = None
+    # llm: Optional[LLMConfig] = None
+    # rag: RAGConfig = Field(default_factory=RAGConfig)
 
 
 class AppContext:
@@ -259,23 +275,21 @@ class AppContext:
         self.log.debug("- end init system manager")
 
     # def _init_llms(self):
-    #     if not self.cfg or not getattr(self.cfg, "llm", None):
-    #         if self.log:
-    #             self.log.warning("[LLM] llm config missing; skipping LLM init")
+    #     if not self.cfg or not self.cfg.llm:
+    #         self.log.warning("[LLM] llm config missing; skipping LLM init")
     #         return
 
     #     self.log.debug("+ start init LLMs")
 
     #     try:
-    #         # provider 직접 주입
-    #         self.llm_manager = LLMManager(
-    #             ctx=self,
-    #             provider=self.cfg.llm.provider,
-    #             model=self.cfg.llm.model
+    #         # LLMManager가 ctx.cfg.llm과 ctx.rag_manager를 직접 사용한다.
+    #         self.llm_manager = LLMManager(ctx=self)
+    #         self.log.info(
+    #             f"[LLM] manager ready "
+    #             f"(provider={self.cfg.llm.provider}, model={self.cfg.llm.model})"
     #         )
-    #         if self.log:
-    #             self.log.info(f"[LLM] manager ready (model={self.cfg.llm.model})")
-    #     except Exception as e:
-    #         if self.log:
-    #             self.log.error(f"[LLM] init failed: {e}")
+    #     except Exception as exc:
+    #         self.log.error(f"[LLM] init failed: {exc}")
     #         raise
+
+    #     self.log.debug("- end init LLMs")
